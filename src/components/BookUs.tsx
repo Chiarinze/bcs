@@ -52,7 +52,7 @@ export default function BookUs() {
         <div className="mt-10">
           <p className="mb-6">We also offer digital services like:</p>
           <div className="w-full flex justify-center items-center gap-8 text-white text-xs">
-            <span className="px-4 py-2 rounded-full bg-gray-900">
+            <span className="px-4 py-2 rounded-full bg-[#415C41]">
               Social Media Management
             </span>
             <span className="px-4 py-2 rounded-full bg-[#B9704A]">
