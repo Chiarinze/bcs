@@ -36,11 +36,21 @@ export default function Header() {
     }
   };
 
+  const handleScrollBookUs = () => {
+    const aboutSection = document.getElementById("contact-us");
+    if (aboutSection) {
+      window.scrollTo({
+        top: aboutSection.offsetTop - 70,
+        behavior: "smooth",
+      });
+    }
+  };
+
   const navigation = [
     { name: "Home", href: "hero" },
     { name: "About", href: "about" },
-    { name: "Services", href: "services" },
     { name: "Performances", href: "performances" },
+    { name: "Contact", href: "contact-us" },
     // { name: "Contact", href: "contact" },
   ];
 
@@ -58,34 +68,43 @@ export default function Header() {
             className="w-14 h-14 rounded-full"
           />
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-center space-x-8">
-              {navigation.map((item) => (
-                <a
-                  key={item.name}
-                  href={`#${item.href}`}
-                  onClick={(e) => handleSmoothScroll(e, item.href)}
-                  className="text-white hover:text-emerald-500 px-3 py-2 text-sm font-medium transition-colors"
-                >
-                  {item.name}
-                </a>
-              ))}
+          <div className="flex items-center justify-between gap-4">
+            {/* Desktop Navigation */}
+            <div className="hidden md:block">
+              <div className="ml-10 flex items-center space-x-8">
+                {navigation.map((item) => (
+                  <a
+                    key={item.name}
+                    href={`#${item.href}`}
+                    onClick={(e) => handleSmoothScroll(e, item.href)}
+                    className="text-white hover:text-emerald-500 px-3 py-2 text-sm font-medium transition-colors"
+                  >
+                    {item.name}
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden">
             <button
-              onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-emerald-500 focus:outline-none"
+              onClick={handleScrollBookUs}
+              className="w-38 bg-[#415C41] text-white px-8 py-3 rounded-xl hover:opacity-80 transition-opacity"
             >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
+              Book us
             </button>
+
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <button
+                onClick={toggleMenu}
+                className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-emerald-500 focus:outline-none"
+              >
+                {isMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

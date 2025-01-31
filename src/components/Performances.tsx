@@ -55,17 +55,18 @@ export default function Performances() {
     <section id="performances" className="py-20 px-4 bg-[#F0EFEA]">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl font-serif text-center mb-12">Past Performances</h2>
+        <div className="w-full h-[1px] bg-black mb-12" />
         
-        <div className="flex flex-wrap justify-center items-center xl:w-full gap-6">
+        <div className="flex flex-wrap justify-center items-center  gap-6">
           {performances.map((performance) => (
             <div key={performance.id} className="bg-[#415C41] rounded-lg shadow-lg text-white w-90 h-90 md:w-2/5 lg:w-1/4 overflow-hidden">
               <img src={performance.image} alt={performance.title} className="w-full h-48 object-cover"/>
               <div className="p-6">
                 <h3 className="font-serif text-xl mb-2">{performance.title}</h3>
                 <p className="mb-2">{performance.date}</p>
-                {/* <a href={performance.link} className="text-blue-600 hover:underline">
+                <a href={performance.link} className="text-yellow-500 font-semibold hover:underline">
                   Watch Performance
-                </a> */}
+                </a>
               </div>
             </div>
           ))}

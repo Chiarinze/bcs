@@ -1,31 +1,67 @@
+const performances = [
+  {
+    id: 1,
+    title: "The Chorale ",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 2,
+    title: "The Orchestra",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 3,
+    title: "The Band",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 4,
+    title: "Digital Consult",
+    image: "/bcs4.jpg",
+  },
+];
+
 export default function About() {
   return (
-    <section id="about" className="py-20 px-4 bg-[#F0EFEA]">
+    <section id="about" className="py-20 px-4 bg-[#F0EFEA]/50">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl font-serif text-center mb-12">About Us</h2>
+        <div className="w-full h-[1px] bg-black mb-12" />
 
         <div className="flex flex-col justify-center items-center gap-8">
           <div className="space-y-4">
             <p className="text-lg">
-              The Benin Chorale & Philharmonic Nigeria Limited (BCS) is a
-              distinguished ensemble of talented artists from diverse cultural
-              and professional backgrounds. It is committed to inspiring and
-              empowering musicians, particularly youths, through transformative
-              music training, education, and global performance opportunities.
-              Since its inception in 2012, BCS has grown to include over 70
-              professional members from fields such as education, law, medicine,
-              engineering, and the arts. It fosters a community rooted in
-              diversity, inclusion, discipline, and personal development.
+              A group of artists from various musical and cultural backgrounds
+              form the Benin Chorale & Philharmonic with the goal of inspiring
+              and empowering young (established or aspiring) musicians by
+              elevating them to a global audience and discouraging them from
+              engaging in social vices. Over 70 musicians who work
+              professionally in a variety of fields, including medicine,
+              education, engineering, information technology, finance, law,
+              business, humanities, etc., make up our membership
             </p>
 
             <p className="text-lg">
-              BCS celebrates cultural harmony by showcasing African and global
-              musical traditions, delivering exceptional concerts, and providing
-              life-changing workshops. Dedicated to youth engagement and
-              development, the organization encourages social responsibility,
-              nurtures talent, and enriches the cultural and social fabric of
-              communities through its commitment to music education, community
-              service, and personal growth.
+              Since its inception in 2012, we have presented over 12 concerts
+              free and paid, to an average of 2000 spectators both physically
+              and online. Young adults between the ages of 16 and 35 make up 60%
+              of our audience, followed by adults between 40 and 75 at 40%.
+            </p>
+
+            <p className="text-lg">
+              We contribute to fostering cross-cultural harmony by presenting
+              musical works from many cultural sources, with a predilection for
+              African music. We support excellent music of both religious and
+              secular origins, including classical, pop, jazz, soul, folk etc.
+              We accept invitations for both local and foreign engagements.
+            </p>
+
+            <p className="text-lg">
+              Our services are designed to improve the quality of music
+              available in our locality, attract profit and contribute to the
+              society. While building our organizational framework, we are open
+              to working with the best hands available in order to reach a
+              status that is consistent with our goals and objectives.
             </p>
           </div>
 
@@ -33,28 +69,45 @@ export default function About() {
             <div className="w-[100%] md:[50%] p-6 bg-[#98916D] rounded-lg shadow-sm">
               <h3 className="font-serif text-xl mb-2">Mission</h3>
               <p>
-                To deliver transformative musical experiences through
-                life-changing concerts, music training, and workshops, creating
-                meaningful opportunities for young musicians to develop their
-                skills and thrive. BCS is devoted to fostering diversity,
-                inclusion, discipline, and personal growth, promoting youth
-                engagement, and cultivating a deep appreciation for choral and
-                orchestral music while contributing to community development and
-                cultural enrichment.
+                Life-changing concerts, job creation for chorale musicians and
+                developing a culture of general chorale music appreciation.
               </p>
             </div>
             <div className="w-[100%] md:[50%] p-6 bg-[#98916D] rounded-lg shadow-sm">
               <h3 className="font-serif text-xl mb-2">Vision</h3>
               <p>
-                To be a leading force in advancing music education, youth
-                empowerment, and cultural appreciation across Africa. We aim to
-                inspire global recognition of African chorale excellence,
-                provide platforms for young musicians to thrive, and establish
-                BCS as one of the top five chorale and philharmonic ensembles on
-                the continent. Through our dedication to diversity, community
-                service, and artistic excellence, we envision a future where
-                music uplifts, unites and transforms lives.
+                Our goal is to spread music education across Africa, job
+                creation for chorale musicians and to rank among the top 5
+                chorales in Africa.
               </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-center items-center gap-8">
+            <h3 className="font-serif text-xl mb-2">Our Arms</h3>
+            <p>
+              The Benin Choral and Philharmonic(BCS) is made up of four basic
+              arms:
+            </p>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {performances.map((performance) => (
+                <div
+                  key={performance.id}
+                  className="bg-[#415C41] rounded-lg shadow-lg text-white overflow-hidden"
+                >
+                  <img
+                    src={performance.image}
+                    alt={performance.title}
+                    className="w-full h-48 object-cover"
+                  />
+                  <div className="p-6">
+                    <h3 className="font-serif text-xl mb-2">
+                      {performance.title}
+                    </h3>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
