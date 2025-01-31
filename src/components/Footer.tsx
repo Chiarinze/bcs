@@ -1,6 +1,24 @@
 import { Facebook, Instagram, Youtube } from "lucide-react";
 
 export default function Footer() {
+  const contactIcons = [
+    {
+      name: "Facebook",
+      icon: <Facebook size={32} />,
+      link: "https://facebook.com/yourpage",
+    },
+    {
+      name: "Instagram",
+      icon: <Instagram size={32} />,
+      link: "https://instagram.com/yourhandle",
+    },
+    {
+      name: "Youtube",
+      icon: <Youtube size={32} />,
+      link: "https://instagram.com/yourhandle",
+    },
+  ];
+
   return (
     <footer className="bg-gray-900 text-white py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -18,12 +36,20 @@ export default function Footer() {
           </div>
           <div>
             <h3 className="text-xl font-bold mb-4">Follow Us</h3>
+            
             <div className="flex space-x-4">
-              <Facebook className="h-6 w-6 text-gray-400 hover:text-white cursor-pointer" />
-              {/* <Twitter className="h-6 w-6 text-gray-400 hover:text-white cursor-pointer" /> */}
-              <Instagram className="h-6 w-6 text-gray-400 hover:text-white cursor-pointer" />
-              <Youtube className="h-6 w-6 text-gray-400 hover:text-white cursor-pointer" />
-            </div>
+            {contactIcons.map((contact, index) => (
+              <a
+                key={index}
+                href={contact.link}
+                target={contact.name !== "Phone" ? "_blank" : "_self"}
+                rel="noopener noreferrer"
+                className="w-6 h-6 text-gray-400"
+              >
+                {contact.icon}
+              </a>
+            ))}
+          </div>
           </div>
         </div>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">

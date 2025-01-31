@@ -94,7 +94,7 @@ export default function About() {
               {performances.map((performance) => (
                 <div
                   key={performance.id}
-                  className="bg-[#415C41] rounded-lg shadow-lg text-white overflow-hidden"
+                  className="bg-[#B9704A] rounded-lg shadow-lg text-white overflow-hidden"
                 >
                   <img
                     src={performance.image}
