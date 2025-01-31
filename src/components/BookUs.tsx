@@ -33,17 +33,17 @@ export default function BookUs() {
             information on our services and performances, you can reach us on
             any of these platforms:
           </p>
-          <div className="flex  gap-8">
+          <div className="flex gap-8">
             {contactIcons.map((contact, index) => (
               <a
                 key={index}
                 href={contact.link}
                 target={contact.name !== "Phone" ? "_blank" : "_self"}
                 rel="noopener noreferrer"
-                className="p-4 w-20 h-20 flex flex-col bg-gray-900 items-center rounded-xl text-white hover:text-gray-200 transition-all"
+                className="p-4 w-18 h-18 flex flex-col bg-gray-900 items-center rounded-xl text-white hover:text-gray-200 transition-all"
               >
                 {contact.icon}
-                <span className="text-sm mt-2">{contact.name}</span>
+                <span className="text-xs mt-2">{contact.name}</span>
               </a>
             ))}
           </div>
@@ -51,7 +51,7 @@ export default function BookUs() {
 
         <div className="mt-10">
           <p className="mb-6">We also offer digital services like:</p>
-          <div className="w-full flex justify-center items-center gap-8 text-white">
+          <div className="w-full flex justify-center items-center gap-8 text-white text-xs">
             <span className="px-4 py-2 rounded-full bg-gray-900">
               Social Media Management
             </span>
