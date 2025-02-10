@@ -139,11 +139,10 @@ export default function About() {
           </div>
 
           <div className="flex flex-col justify-center items-center gap-8">
-            <h3 className="font-serif text-2xl mb-2">Our Arms</h3>
-            {/* <p>
-              The Benin Choral and Philharmonic is made up of four basic
-              arms:
-            </p> */}
+            <div>
+              <h3 className="font-serif text-2xl mb-2">Our Arms</h3>
+              <div className="w-full h-[1px] bg-black" />
+            </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {arms.map((arm) => (
@@ -165,7 +164,12 @@ export default function About() {
           </div>
 
           <div className="flex flex-col justify-center items-center gap-8">
-            <h3 className="font-serif text-2xl mb-2">Our Board of Directors</h3>
+            <div>
+              <h3 className="font-serif text-2xl mb-2">
+                Our Board of Directors
+              </h3>
+              <div className="w-full h-[1px] bg-black" />
+            </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {BoardOfDirectors.map((member) => (
@@ -194,7 +198,12 @@ export default function About() {
           </div>
 
           <div className="flex flex-col justify-center items-center gap-8">
-            <h3 className="font-serif text-2xl mb-2">Our Management Bodies</h3>
+            <div>
+              <h3 className="font-serif text-2xl mb-2">
+              Our Management Bodies
+              </h3>
+              <div className="w-full h-[1px] bg-black" />
+            </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {management.map((management) => (
@@ -209,11 +218,17 @@ export default function About() {
               ))}
             </div>
 
+            <div>
             <h3 className="font-serif text-2xl mb-2">Meet our Part Leaders</h3>
+              <div className="w-full h-[1px] bg-black" />
+            </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {partLeaders.map((partLeader) => (
-                <div key={partLeader.id} className="flex flex-col justify-center items-center text-center">
+                <div
+                  key={partLeader.id}
+                  className="flex flex-col justify-center items-center text-center"
+                >
                   <img
                     src={partLeader.image}
                     alt={partLeader.title}

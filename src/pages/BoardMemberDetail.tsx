@@ -20,7 +20,7 @@ export default function BoardMemberDetail() {
       <h3 className="font-serif text-xl">{member.name}</h3>
       <p className="font-serif text-sm">{member.position}</p>
       </div>
-      <div className="p-4 bg-[#98916D]">
+      <div className="p-4 flex flex-col gap-4">
         {member.about.map((item) => (
           <p key={item.id}>{item.text}</p>
         ))}
