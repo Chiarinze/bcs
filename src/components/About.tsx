@@ -1,4 +1,7 @@
-const performances = [
+import { Link } from "react-router-dom";
+import { BoardOfDirectors } from "../db";
+
+const arms = [
   {
     id: 1,
     title: "The Chorale ",
@@ -14,9 +17,61 @@ const performances = [
     title: "The Band",
     image: "/bcs4.jpg",
   },
+  // {
+  //   id: 4,
+  //   title: "Digital Consult",
+  //   image: "/bcs4.jpg",
+  // },
+];
+
+const management = [
+  {
+    id: 1,
+    title: "The Directorate of Training and Research",
+  },
+  {
+    id: 2,
+    title: "The Directorate of Investment",
+  },
+  {
+    id: 3,
+    title: "Digital Consult",
+  },
   {
     id: 4,
-    title: "Digital Consult",
+    title: "Part Leaders",
+  },
+];
+
+const partLeaders = [
+  {
+    id: 1,
+    title: "Soprano Part Leader",
+    name: "Aifuwa Esohe Grace",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 2,
+    title: "Alto Part Leader",
+    name: "Mary Eifediyi",
+    image: "/success.jpg",
+  },
+  {
+    id: 3,
+    title: "Tenor Part Leader",
+    name: "Aifuwa Osamudiamen Ebenezer ",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 4,
+    title: "Bass Part Leader",
+    name: "Osazuwa Osamudiamen Emmanuel",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 5,
+    title: "Concert Master",
+    name: "George Paul",
     image: "/bcs4.jpg",
   },
 ];
@@ -84,27 +139,89 @@ export default function About() {
           </div>
 
           <div className="flex flex-col justify-center items-center gap-8">
-            <h3 className="font-serif text-xl mb-2">Our Arms</h3>
-            <p>
-              The Benin Choral and Philharmonic(BCS) is made up of four basic
+            <h3 className="font-serif text-2xl mb-2">Our Arms</h3>
+            {/* <p>
+              The Benin Choral and Philharmonic is made up of four basic
               arms:
-            </p>
+            </p> */}
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {performances.map((performance) => (
+              {arms.map((arm) => (
                 <div
-                  key={performance.id}
+                  key={arm.id}
                   className="bg-[#B9704A] rounded-lg shadow-lg text-white overflow-hidden"
                 >
                   <img
-                    src={performance.image}
-                    alt={performance.title}
+                    src={arm.image}
+                    alt={arm.title}
                     className="w-full h-48 object-cover"
                   />
                   <div className="p-6">
-                    <h3 className="font-serif text-xl mb-2">
-                      {performance.title}
-                    </h3>
+                    <h3 className="font-serif text-xl mb-2">{arm.title}</h3>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-center items-center gap-8">
+            <h3 className="font-serif text-2xl mb-2">Our Board of Directors</h3>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {BoardOfDirectors.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex flex-col justify-center items-center text-center"
+                >
+                  <img
+                    src={member.image}
+                    alt={member.position}
+                    className="w-50 rounded-full h-50 object-cover"
+                  />
+                  <div className="p-6">
+                    <h3 className="font-serif text-xl">{member.name}</h3>
+                    <p className="font-serif text-sm">{member.position}</p>
+                    <Link
+                      to={`/board/${member.id}`}
+                      className="text-blue-500 underline"
+                    >
+                      Learn More
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-center items-center gap-8">
+            <h3 className="font-serif text-2xl mb-2">Our Management Bodies</h3>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {management.map((management) => (
+                <div
+                  key={management.id}
+                  className="bg-[#B9704A] rounded-lg shadow-lg text-white overflow-hidden"
+                >
+                  <div className="p-6">
+                    <p className="font-serif mb-2">{management.title}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <h3 className="font-serif text-2xl mb-2">Meet our Part Leaders</h3>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {partLeaders.map((partLeader) => (
+                <div key={partLeader.id} className="flex flex-col justify-center items-center text-center">
+                  <img
+                    src={partLeader.image}
+                    alt={partLeader.title}
+                    className="w-50 rounded-full h-50 object-cover"
+                  />
+                  <div className="p-6">
+                    <h3 className="font-serif text-xl">{partLeader.name}</h3>
+                    <p className="font-serif text-sm">{partLeader.title}</p>
                   </div>
                 </div>
               ))}
