@@ -1,3 +1,78 @@
+export const Arms = [
+  {
+    id: 1,
+    title: "The Chorale ",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 2,
+    title: "The Orchestra",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 3,
+    title: "The Band",
+    image: "/bcs4.jpg",
+  },
+  // {
+  //   id: 4,
+  //   title: "Digital Consult",
+  //   image: "/bcs4.jpg",
+  // },
+];
+
+export const Management = [
+  {
+    id: 1,
+    title: "The Directorate of Training and Research",
+  },
+  {
+    id: 2,
+    title: "The Directorate of Investment",
+  },
+  {
+    id: 3,
+    title: "Digital Consult",
+  },
+  {
+    id: 4,
+    title: "Part Leaders",
+  },
+];
+
+export const PartLeaders = [
+  {
+    id: 1,
+    title: "Soprano Part Leader",
+    name: "Aifuwa Esohe Grace",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 2,
+    title: "Alto Part Leader",
+    name: "Mary Eifediyi",
+    image: "/success.jpg",
+  },
+  {
+    id: 3,
+    title: "Tenor Part Leader",
+    name: "Aifuwa Osamudiamen Ebenezer ",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 4,
+    title: "Bass Part Leader",
+    name: "Osazuwa Osamudiamen Emmanuel",
+    image: "/bcs4.jpg",
+  },
+  {
+    id: 5,
+    title: "Concert Master",
+    name: "George Paul",
+    image: "/bcs4.jpg",
+  },
+];
+
 export const BoardOfDirectors = [
   {
     id: 1,
@@ -55,8 +130,32 @@ export const BoardOfDirectors = [
       },
       {
         id: 3,
-        text: "John’s personal journey is defined by a steadfast belief in the transformative power of music—a belief that continues to drive his efforts in nurturing talent and elevating the cultural landscape of Nigeria."
+        text: "John’s personal journey is defined by a steadfast belief in the transformative power of music—a belief that continues to drive his efforts in nurturing talent and elevating the cultural landscape of Nigeria."
       },
     ],
   },
+  {
+    id: 4,
+    position: "Director of Productions",
+    name: "Jude Onyinyechukwu Dumme",
+    image: "/jude.jpg",
+    about: [
+      {
+        id: 1,
+        text: "Jude Onyinyechukwu Dumme is a Chemical Engineer turned music professional who currently serves as the Director of Productions at the Benin Chorale and Philharmonic Nigeria. Born in Benin City to the family of Late Engr. Peter Okolie Dumme of Agbe-akwu village in Ezi, Aniocha North Local Government of Delta State, Jude's journey spans both technical and artistic disciplines. Jude is a cellist and a Bass/Baritone singer",
+      },
+      {
+        id: 2,
+        text: "His professional background includes working as a Chemical Engineer with Diversey West Africa Limited at Guinness Nigeria PLC, and later as an Electrical Engineer and Music Instructor at Hallel College Rukpokwu in Port Harcourt. He holds qualifications in Chemical Engineering from Auchi Polytechnic and certification in Electrical Engineering, building upon his father's legacy in the field.",
+      },
+      {
+        id: 3,
+        text: "Jude's musical journey began at St. Thomas Aquinas Catholic Church, Ikpoba Hill, Benin City, under the guidance of Mr. Donatus Ezeh, where he served as both Assistant Choir Master and Choir Master. His dedication to music led him to join the Klassique Klubb of Benin (KKB) in 2010, where he distinguished himself as Bass Part Leader and Soloist before joining the Klassique Klubb Orchestra as a Cellist under the directorship of Professor Tunde Adeleke.",
+      },
+      {
+        id: 4,
+        text: "In December 2022, Jude joined the Benin Chorale and Philharmonic Nigeria, initially performing as a guest Cellist. His connection with the organization was strengthened through his previous association with Artistic Director Otamere Osarodion from their time at the Klassique Klubb of Benin. As Director of Productions, Jude continues to contribute his expertise as both a cellist and Bass/Baritone singer, helping to shape the organization's artistic presentations.",
+      }
+    ],
+}
 ];

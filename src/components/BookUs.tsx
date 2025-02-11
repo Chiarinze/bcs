@@ -11,12 +11,12 @@ export default function BookUs() {
     {
       name: "Facebook",
       icon: <Facebook size={32} />,
-      link: "https://facebook.com/yourpage",
+      link: "https://web.facebook.com/BcsNig/?_rdc=1&_rdr#",
     },
     {
       name: "Instagram",
       icon: <Instagram size={32} />,
-      link: "https://instagram.com/yourhandle",
+      link: "https://www.instagram.com/the_benin_chorale_society/?igsh=MXVybmpseXkxOGQwZg%3D%3D",
     },
   ];
 

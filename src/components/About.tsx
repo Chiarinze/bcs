@@ -1,80 +1,5 @@
 import { Link } from "react-router-dom";
-import { BoardOfDirectors } from "../db";
-
-const arms = [
-  {
-    id: 1,
-    title: "The Chorale ",
-    image: "/bcs4.jpg",
-  },
-  {
-    id: 2,
-    title: "The Orchestra",
-    image: "/bcs4.jpg",
-  },
-  {
-    id: 3,
-    title: "The Band",
-    image: "/bcs4.jpg",
-  },
-  // {
-  //   id: 4,
-  //   title: "Digital Consult",
-  //   image: "/bcs4.jpg",
-  // },
-];
-
-const management = [
-  {
-    id: 1,
-    title: "The Directorate of Training and Research",
-  },
-  {
-    id: 2,
-    title: "The Directorate of Investment",
-  },
-  {
-    id: 3,
-    title: "Digital Consult",
-  },
-  {
-    id: 4,
-    title: "Part Leaders",
-  },
-];
-
-const partLeaders = [
-  {
-    id: 1,
-    title: "Soprano Part Leader",
-    name: "Aifuwa Esohe Grace",
-    image: "/bcs4.jpg",
-  },
-  {
-    id: 2,
-    title: "Alto Part Leader",
-    name: "Mary Eifediyi",
-    image: "/success.jpg",
-  },
-  {
-    id: 3,
-    title: "Tenor Part Leader",
-    name: "Aifuwa Osamudiamen Ebenezer ",
-    image: "/bcs4.jpg",
-  },
-  {
-    id: 4,
-    title: "Bass Part Leader",
-    name: "Osazuwa Osamudiamen Emmanuel",
-    image: "/bcs4.jpg",
-  },
-  {
-    id: 5,
-    title: "Concert Master",
-    name: "George Paul",
-    image: "/bcs4.jpg",
-  },
-];
+import { Arms, BoardOfDirectors, Management, PartLeaders } from "../db";
 
 export default function About() {
   return (
@@ -145,7 +70,7 @@ export default function About() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {arms.map((arm) => (
+              {Arms.map((arm) => (
                 <div
                   key={arm.id}
                   className="bg-[#B9704A] rounded-lg shadow-lg text-white overflow-hidden"
@@ -184,7 +109,7 @@ export default function About() {
                   />
                   <div className="p-6">
                     <h3 className="font-serif text-xl">{member.name}</h3>
-                    <p className="font-serif text-sm">{member.position}</p>
+                    <p className="font-serif text-black/50 text-sm">{member.position}</p>
                     <Link
                       to={`/board/${member.id}`}
                       className="text-blue-500 underline"
@@ -206,7 +131,7 @@ export default function About() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {management.map((management) => (
+              {Management.map((management) => (
                 <div
                   key={management.id}
                   className="bg-[#B9704A] rounded-lg shadow-lg text-white overflow-hidden"
@@ -224,7 +149,7 @@ export default function About() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {partLeaders.map((partLeader) => (
+              {PartLeaders.map((partLeader) => (
                 <div
                   key={partLeader.id}
                   className="flex flex-col justify-center items-center text-center"
@@ -236,7 +161,7 @@ export default function About() {
                   />
                   <div className="p-6">
                     <h3 className="font-serif text-xl">{partLeader.name}</h3>
-                    <p className="font-serif text-sm">{partLeader.title}</p>
+                    <p className="font-serif text-black/50 text-sm">{partLeader.title}</p>
                   </div>
                 </div>
               ))}

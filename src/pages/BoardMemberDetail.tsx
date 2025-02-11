@@ -10,21 +10,23 @@ export default function BoardMemberDetail() {
   }
 
   return (
-    <div className="w-full min-h-screen p-4  flex flex-col justify-center items-center bg-[#98916D]">
-      <img
-        src={member.image}
-        alt={member.position}
-        className="w-50 rounded-full h-50 object-cover"
-      />
-      <div className="text-center">
-      <h3 className="font-serif text-xl">{member.name}</h3>
-      <p className="font-serif text-sm">{member.position}</p>
+    <section className="w-full min-h-screen p-4 bg-[#98916D]">
+      <div className="w-full h-full flex flex-col justify-center items-center">
+        <img
+          src={member.image}
+          alt={member.position}
+          className="w-50 rounded-full h-50 object-cover"
+        />
+        <div className="text-center">
+          <h3 className="font-serif text-xl">{member.name}</h3>
+          <p className="font-serif text-black/50 text-sm">{member.position}</p>
+        </div>
+        <div className="p-4 flex flex-col gap-4">
+          {member.about.map((item) => (
+            <p key={item.id}>{item.text}</p>
+          ))}
+        </div>
       </div>
-      <div className="p-4 flex flex-col gap-4">
-        {member.about.map((item) => (
-          <p key={item.id}>{item.text}</p>
-        ))}
-      </div>
-    </div>
+    </section>
   );
 }

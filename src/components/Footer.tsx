@@ -5,17 +5,17 @@ export default function Footer() {
     {
       name: "Facebook",
       icon: <Facebook size={32} />,
-      link: "https://facebook.com/yourpage",
+      link: "https://web.facebook.com/BcsNig/?_rdc=1&_rdr#",
     },
     {
       name: "Instagram",
       icon: <Instagram size={32} />,
-      link: "https://instagram.com/yourhandle",
+      link: "https://www.instagram.com/the_benin_chorale_society/?igsh=MXVybmpseXkxOGQwZg%3D%3D",
     },
     {
       name: "Youtube",
       icon: <Youtube size={32} />,
-      link: "https://instagram.com/yourhandle",
+      link: "https://www.youtube.com/@beninchoraleandphilharmonic?app=desktop&si=7qcI3YtsV7aVOYkL",
     },
   ];
 
