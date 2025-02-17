@@ -4,17 +4,17 @@ export default function Footer() {
   const contactIcons = [
     {
       name: "Facebook",
-      icon: <Facebook size={22} />,
+      icon: <Facebook size={30} />,
       link: "https://web.facebook.com/BcsNig/?_rdc=1&_rdr#",
     },
     {
       name: "Instagram",
-      icon: <Instagram size={22} />,
+      icon: <Instagram size={30} />,
       link: "https://www.instagram.com/the_benin_chorale_society/?igsh=MXVybmpseXkxOGQwZg%3D%3D",
     },
     {
       name: "Youtube",
-      icon: <Youtube size={22} />,
+      icon: <Youtube size={30} />,
       link: "https://www.youtube.com/@beninchoraleandphilharmonic?app=desktop&si=7qcI3YtsV7aVOYkL",
     },
   ];
@@ -22,7 +22,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900 text-white py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between">
+        <div className="grid grid-cols-2">
           <div>
             <h3 className="font-bold mb-4">BCS</h3>
             <p className="text-gray-400 text-sm">
@@ -31,11 +31,11 @@ export default function Footer() {
           </div>
           <div>
             <h3 className="font-bold mb-4">Contact</h3>
-            <p className="text-gray-400 text-sm">Benin City, Edo State</p>
-            <p className="text-gray-400 text-sm">Nigeria</p>
+            <p className="text-gray-400 text-sm">Benin City, Edo State, Nigeria</p>
+            {/* <p className="text-gray-400 text-sm">Nigeria</p> */}
           </div>
           <div>
-            <h3 className="font-bold mb-4">Follow Us</h3>
+            <h3 className="font-bold my-4">Follow Us</h3>
             
             <div className="flex space-x-4">
             {contactIcons.map((contact, index) => (
@@ -44,7 +44,7 @@ export default function Footer() {
                 href={contact.link}
                 target={contact.name !== "Phone" ? "_blank" : "_self"}
                 rel="noopener noreferrer"
-                className="w-2 h-2 text-gray-400"
+                className="w-6 h-6 text-gray-400"
               >
                 {contact.icon}
               </a>

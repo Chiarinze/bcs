@@ -59,7 +59,7 @@ const performances: Performance[] = [
 export default function Performances() {
   return (
     <section id="performances" className="py-20 px-4 bg-[#F0EFEA]">
-      <div className="max-w-6xl mx-auto">
+      <div className="flex flex-col justify-center items-center gap-8 mx-auto">
         <h2 className="text-3xl font-serif text-center mb-12">Past Performances</h2>
         <div className="w-full h-[1px] bg-black mb-12" />
         
