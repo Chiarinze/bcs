@@ -58,6 +58,9 @@ export default function BookUs() {
             <span className="px-4 py-2 rounded-full bg-[#B9704A]">
               Graphics Designing
             </span>
+            <span className="px-4 py-2 rounded-full bg-gray-900">
+              Video Editing
+            </span>
             <span className="px-4 py-2 rounded-full bg-[#00423D]">
               Software/Website Development
             </span>

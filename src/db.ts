@@ -45,7 +45,7 @@ export const PartLeaders = [
     id: 1,
     title: "Soprano Part Leader",
     name: "Aifuwa Esohe Grace",
-    image: "/bcs4.jpg",
+    image: "/esohe.jpg",
   },
   {
     id: 2,
@@ -57,19 +57,19 @@ export const PartLeaders = [
     id: 3,
     title: "Tenor Part Leader",
     name: "Aifuwa Osamudiamen Ebenezer ",
-    image: "/bcs4.jpg",
+    image: "/osamu.jpg",
   },
   {
     id: 4,
     title: "Bass Part Leader",
     name: "Osazuwa Osamudiamen Emmanuel",
-    image: "/bcs4.jpg",
+    image: "/emma.jpg",
   },
   {
     id: 5,
     title: "Concert Master",
     name: "George Paul",
-    image: "/bcs4.jpg",
+    image: "/paul.jpg",
   },
 ];
 
@@ -104,6 +104,22 @@ export const BoardOfDirectors = [
   },
   {
     id: 2,
+    position: "Registrar",
+    name: "Mr. Charles Osas Aiyudubie, Esq.",
+    image: "/barr.jpg",
+    about: [
+      {
+        id: 1,
+        text: "Mr. Charles Osas Aiyudubie, Esq. is a Legal Practitioner specialized in Litigation, Corporate and Commercial law, Debt Recovery, Banking and Finance, Family Law, Environmental Law and Oil and Gas. He’s also an Entertainment/Intellectual Property Law Attorney and currently the Principal Partner of Your Lawyer & Solicitors. He’s a Member and a Director at The Benin Chorale and Philharmonic, Nigeria Limited. He serves as the Registrar of the The Benin Chorale and Philharmonic, Registrar of the Benin Institute for Musical Arts and also serves as the Ikpoba Okha Divisional Legal Adviser at the Nigerian Red Cross Society.",
+      },
+      {
+        id: 2,
+        text: "He’s a graduate of Ambrose Alli University, Ekpoma where he obtained his LLB, The Nigerian Law School, Abuja and the University of Benin where he obtained his LLM degree. He is a fellow of the Benin Chorale and Philharmonic.",
+      },
+    ],
+  },
+  {
+    id: 3,
     position: "Director of Public Relations and Digital Communications",
     name: "Akhanoba Henshaw",
     image: "/henshaw.jpg",
@@ -115,10 +131,10 @@ export const BoardOfDirectors = [
     ],
   },
   {
-    id: 3,
+    id: 4,
     position: "Director of Administration and Board Secretary",
     name: "John Eifediyi",
-    // image: "/henshaw.jpg",
+    image: "/john.jpg",
     about: [
       {
         id: 1,
@@ -126,16 +142,16 @@ export const BoardOfDirectors = [
       },
       {
         id: 2,
-        text: "Beyond his formal roles, John is deeply committed to community and cultural enrichment. He dedicates much of his personal time to mentoring emerging musicians and supporting initiatives that celebrate Nigeria’s rich musical heritage. His genuine warmth and approachable nature have made him a beloved figure within the artistic community, inspiring others to explore both traditional and contemporary musical expressions."
+        text: "Beyond his formal roles, John is deeply committed to community and cultural enrichment. He dedicates much of his personal time to mentoring emerging musicians and supporting initiatives that celebrate Nigeria’s rich musical heritage. His genuine warmth and approachable nature have made him a beloved figure within the artistic community, inspiring others to explore both traditional and contemporary musical expressions.",
       },
       {
         id: 3,
-        text: "John’s personal journey is defined by a steadfast belief in the transformative power of music—a belief that continues to drive his efforts in nurturing talent and elevating the cultural landscape of Nigeria."
+        text: "John’s personal journey is defined by a steadfast belief in the transformative power of music—a belief that continues to drive his efforts in nurturing talent and elevating the cultural landscape of Nigeria.",
       },
     ],
   },
   {
-    id: 4,
+    id: 5,
     position: "Director of Productions",
     name: "Jude Onyinyechukwu Dumme",
     image: "/jude.jpg",
@@ -154,8 +170,28 @@ export const BoardOfDirectors = [
       },
       {
         id: 4,
-        text: "In December 2022, Jude joined the Benin Chorale and Philharmonic Nigeria, initially performing as a guest Cellist. His connection with the organization was strengthened through his previous association with Artistic Director Otamere Osarodion from their time at the Klassique Klubb of Benin. As Director of Productions, Jude continues to contribute his expertise as both a cellist and Bass/Baritone singer, helping to shape the organization's artistic presentations.",
-      }
+        text: "In December 2022, Jude joined the Benin Chorale and Philharmonic Nigeria, initially performing as a guest Cellist. His connection with the organization was strengthened through his previous association with Artistic Director Otamere Osarodion from their time at the Klassique Klubb of Benin. As Director of Productions, Jude continues to contribute his expertise as both a cellist and Bass/Baritone singer, helping to shape the organization's artistic presentations. He is a fellow of the Benin Chorale and Philharmonic.",
+      },
     ],
-}
+  },
+  {
+    id: 6,
+    position: "Director of Welfare",
+    name: "Obigba Elo",
+    image: "/elo.jpg",
+    about: [
+      {
+        id: 1,
+        text: "Obigba Elo is a multifaceted entrepreneur and music enthusiast. As the founder of Lostella Sparkle Cleaning Services, she has successfully navigated the business world, driven by her passion for innovation and excellence.",
+      },
+      {
+        id: 2,
+        text: "A skilled soprano, Obigba has had a distinguished music career, previously serving as the Soprano Part Leader and currently holding the position of Director of Welfare at the prestigious Benin Chorale and Philharmonic, Nigeria.",
+      },
+      {
+        id: 3,
+        text: "With her unique blend of entrepreneurial acumen and artistic talent, Obigba Elo continues to inspire and make a lasting impact in her community.",
+      },
+    ],
+  },
 ];
