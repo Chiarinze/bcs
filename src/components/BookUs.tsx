@@ -2,11 +2,11 @@ import { Phone, Facebook, Mail, Instagram } from "lucide-react";
 
 export default function BookUs() {
   const contactIcons = [
-    { name: "Phone", icon: <Phone size={32} />, link: "tel:+1234567890" },
+    { name: "Phone", icon: <Phone size={32} />, link: "tel:+2348078742682" },
     {
       name: "Email",
       icon: <Mail size={32} />,
-      link: "mailto:your-email@example.com",
+      link: "mailto:Info@beninchoraleandphilharmonic.com",
     },
     {
       name: "Facebook",
