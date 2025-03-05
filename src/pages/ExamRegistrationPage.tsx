@@ -235,7 +235,7 @@ const ExamRegistrationPage: React.FC = () => {
               setFormData(prev => ({
                 ...prev,
                 totalAmount: newCouponCode === 'GRADED-BCS' 
-                  ? 100 
+                  ? 10000 
                   : EXAM_PRICES[prev.grade as keyof typeof EXAM_PRICES]
               }));
             }}
