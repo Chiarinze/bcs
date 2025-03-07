@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { EXAM_PRICES, INSTRUMENTS, ExamRegistration } from '../types/examRegistration';
-import { registerForExam } from '../services/examRegistrationService';
-import { initializePaystackPayment, verifyPayment } from '../services/paystackService';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const ExamRegistrationPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [formData, setFormData] = useState<Omit<ExamRegistration, 'paymentStatus' | 'registrationDate' | 'id'>>({
     firstName: '',
     lastName: '',
@@ -17,39 +19,93 @@ const ExamRegistrationPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [registrations, setRegistrations] = useState<ExamRegistration[]>([]);
 
+  // Function to generate a simple unique ID
+  const generateId = () => {
+    return Date.now().toString() + Math.random().toString(36).substring(2, 9);
+  };
 
-  // Check for Paystack reference in URL
+  // Load any existing registrations from localStorage
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const reference = urlParams.get('reference');
+    const storedRegistrations = localStorage.getItem('examRegistrations');
+    if (storedRegistrations) {
+      setRegistrations(JSON.parse(storedRegistrations));
+    }
+  }, []);
 
+  // Check for Paystack reference in URL on component mount
+  useEffect(() => {
     const verifyPaymentAndRegister = async () => {
-      if (reference) {
+      const urlParams = new URLSearchParams(location.search);
+      const reference = urlParams.get('reference');
+      const trxref = urlParams.get('trxref');
+      
+      // If there's a reference and trxref in the URL, verify the payment
+      if (reference && trxref) {
+        setIsLoading(true);
+        setError('');
+        
         try {
-          const paymentVerification = await verifyPayment(reference);
+          // Get the pending registration from localStorage
+          const pendingRegistration = localStorage.getItem('pendingRegistration');
           
-          if (paymentVerification.data.status === 'success') {
-            // Complete registration
-            await registerForExam({
-              ...formData,
+          if (!pendingRegistration) {
+            throw new Error('No pending registration found');
+          }
+          
+          const registration = JSON.parse(pendingRegistration);
+          
+          // Verify payment with Paystack public API
+          // Note: In a production app, you should verify on the backend
+          // This is a simplified frontend-only approach
+          const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_PAYSTACK_SECRET_KEY}`
+            }
+          });
+          
+          const data = await response.json();
+          
+          if (data.status && data.data.status === 'success') {
+            // Payment was successful
+            const newRegistration: ExamRegistration = {
+              ...registration,
+              id: generateId(),
               paymentStatus: 'completed',
               transactionId: reference,
               registrationDate: new Date()
-            });
-
-            setSuccess('Exam registration successful!');
+            };
+            
+            // Add to registrations and save to localStorage
+            const updatedRegistrations = [...registrations, newRegistration];
+            setRegistrations(updatedRegistrations);
+            localStorage.setItem('examRegistrations', JSON.stringify(updatedRegistrations));
+            
+            // Remove pending registration
+            localStorage.removeItem('pendingRegistration');
+            
+            // Show success message and redirect
+            // setSuccess('Registration successful! Redirecting to exam page...');
+            
+            navigate('/exam-success');
           } else {
+            // Payment failed
             setError('Payment verification failed. Please try again.');
+            setIsLoading(false);
           }
-        } catch {
-          setError('Error verifying payment. Please contact support.');
+        } catch (error) {
+          console.error('Error verifying payment:', error);
+          setError('An error occurred while verifying your payment. Please contact support.');
+          setIsLoading(false); // Reset loading state on error
         }
       }
     };
 
     verifyPaymentAndRegister();
-  }, [formData]);
+  }, [location, navigate, registrations]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -77,6 +133,28 @@ const ExamRegistrationPage: React.FC = () => {
     });
   };
 
+  const initializePaystack = (email: string, amount: number) => {
+    // @ts-expect-error - PaystackPop is loaded from the script in public/index.html
+    const handler = window.PaystackPop?.setup({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+      email,
+      amount: amount * 100, // Paystack expects amount in kobo (x100)
+      currency: 'NGN',
+      ref: `bima_exam_${Date.now()}`,
+      callback: function(response: { reference: string }) {
+        // Instead of handling verification here, we'll do an immediate redirect to our success page
+        // This will trigger the useEffect verification logic with the reference in URL
+        window.location.href = `/exam-registration?reference=${response.reference}&trxref=${response.reference}`;
+      },
+      onClose: function() {
+        setIsLoading(false);
+        console.log('Payment window closed');
+      }
+    });
+    
+    handler.openIframe();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -89,28 +167,27 @@ const ExamRegistrationPage: React.FC = () => {
         throw new Error('Please fill in all required fields');
       }
 
+      // Create pending registration
+      const pendingRegistration: Omit<ExamRegistration, 'id'> = {
+        ...formData,
+        paymentStatus: 'pending',
+        registrationDate: new Date()
+      };
+      
+      // Save pending registration to localStorage
+      localStorage.setItem('pendingRegistration', JSON.stringify(pendingRegistration));
+      
       // Initialize Paystack payment
-      const paymentResponse = await initializePaystackPayment(
-        formData.email, 
-        formData.totalAmount, 
-        `${window.location.origin}/exam-registration`
-      );
-
-      // Redirect to Paystack payment page
-      if (paymentResponse.data.authorization_url) {
-        window.location.href = paymentResponse.data.authorization_url;
-      } else {
-        throw new Error('Unable to initialize payment');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-    } finally {
+      initializePaystack(formData.email, formData.totalAmount);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
 
   return (
-    <div className=" bg-gray-50  px-4 py-8">
+    <div className="bg-gray-50 px-4 py-8">
       <h1 className="text-3xl font-bold mb-6 text-center">BIMA Graded Exam Registration</h1>
       
       <form onSubmit={handleSubmit} className="max-w-md mx-auto bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
@@ -191,7 +268,7 @@ const ExamRegistrationPage: React.FC = () => {
           >
             {Object.keys(EXAM_PRICES).map(grade => (
               <option key={grade} value={grade}>
-                Grade {grade} - ₦{EXAM_PRICES[Number(grade) as keyof typeof EXAM_PRICES]}
+                Grade {grade} - ₦{EXAM_PRICES[Number(grade) as keyof typeof EXAM_PRICES].toLocaleString()}
               </option>
             ))}
           </select>
@@ -249,13 +326,13 @@ const ExamRegistrationPage: React.FC = () => {
         </div>
 
         <div className="flex items-center justify-between">
-        <button
-          className="bg-[#70393f] hover:bg-[#8a474f] text-white py-2 px-4 rounded-md transition duration-300"
-          type="submit"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Processing...' : 'Register and Pay'}
-        </button>
+          <button
+            className="bg-[#70393f] hover:bg-[#8a474f] text-white py-2 px-4 rounded-md transition duration-300"
+            type="submit"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Processing...' : 'Register and Pay'}
+          </button>
         </div>
       </form>
     </div>

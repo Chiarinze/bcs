@@ -33,3 +33,33 @@ export const INSTRUMENTS = [
   'Trumpet', 
   'Flute'
 ];
+
+export interface PaystackResponse {
+  reference: string;
+  status: string;
+  trans: string;
+  message: string;
+  transaction: string;
+  trxref: string;
+}
+
+export interface PaystackOptions {
+  key: string;
+  email: string;
+  amount: number;
+  currency?: string;
+  ref?: string;
+  callback: (response: PaystackResponse) => void;
+  onClose: () => void;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PaystackPopInterface {
+  setup(options: PaystackOptions): {
+    openIframe(): void;
+  };
+}
+
+export interface Window {
+  PaystackPop?: PaystackPopInterface;
+}
