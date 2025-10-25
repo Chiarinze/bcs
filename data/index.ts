@@ -73,6 +73,7 @@ export const BoardOfDirectors = [
     id: 1,
     position: "Executive and Artistic Director",
     name: "Otamere Osarodion Emmanuel",
+    slug: "otamere-osarodion-emmanuel",
     image: IMAGES.barr,
     about: [
       {
@@ -96,11 +97,17 @@ export const BoardOfDirectors = [
         text: "His contributions to music education and performance continue to impact the Nigerian music landscape, positioning him as a leading advocate for the growth of structured music training and cultural preservation.",
       },
     ],
+    contact: {
+      email: "otamere@bcpnigeria.org",
+      linkedin: "https://www.linkedin.com/in/otamereosarodion",
+      instagram: "https://www.instagram.com/otamereosarodion",
+    },
   },
   {
     id: 2,
     position: "Registrar",
     name: "Mr. Charles Osas Aiyudubie, Esq.",
+    slug: "charles-osas-aiyudubie",
     image: IMAGES.barr,
     about: [
       {
@@ -112,11 +119,13 @@ export const BoardOfDirectors = [
         text: "He’s a graduate of Ambrose Alli University, Ekpoma where he obtained his LLB, The Nigerian Law School, Abuja and the University of Benin where he obtained his LLM degree. He is a fellow of the Benin Chorale and Philharmonic.",
       },
     ],
+    contact: {},
   },
   {
     id: 3,
     position: "Director of Public Relations and Digital Communications",
     name: "Akhanoba Henshaw",
+    slug: "akhanoba-henshaw",
     image: IMAGES.barr,
     about: [
       {
@@ -124,11 +133,13 @@ export const BoardOfDirectors = [
         text: "Akhanoba Henshaw is an industrial physicist, a teacher, a pianist and a social media manager. He is a Member and a Director at The Benin Chorale and Philharmonic, Nigeria Limited. He serves as the Director of Public Relations and Digital Communications at The Benin Chorale and Philharmonic, and also doubles as the Band co-ordinator and Director of Student Industrial Work Experience Scheme (SIWES). He is also the Public Relations Officer at the Benin Institute for Musical Arts and also serves as the Organist at Our Saviours Anglican Church, GRA, Benin City.He’s a graduate of the University of Benin (UNIBEN), where he obtained his BSc in Industrial Physics. He is a fellow of the Benin Chorale and Philharmonic",
       },
     ],
+    contact: {},
   },
   {
     id: 4,
     position: "Director of Administration and Board Secretary",
     name: "John Eifediyi",
+    slug: "john-eifediyi",
     image: IMAGES.barr,
     about: [
       {
@@ -144,11 +155,13 @@ export const BoardOfDirectors = [
         text: "John’s personal journey is defined by a steadfast belief in the transformative power of music—a belief that continues to drive his efforts in nurturing talent and elevating the cultural landscape of Nigeria.",
       },
     ],
+    contact: {},
   },
   {
     id: 5,
     position: "Director of Productions",
     name: "Jude Onyinyechukwu Dumme",
+    slug: "jude-onyinyechukwu-dumme",
     image: IMAGES.barr,
     about: [
       {
@@ -168,11 +181,13 @@ export const BoardOfDirectors = [
         text: "In December 2022, Jude joined the Benin Chorale and Philharmonic Nigeria, initially performing as a guest Cellist. His connection with the organization was strengthened through his previous association with Artistic Director Otamere Osarodion from their time at the Klassique Klubb of Benin. As Director of Productions, Jude continues to contribute his expertise as both a cellist and Bass/Baritone singer, helping to shape the organization's artistic presentations. He is a fellow of the Benin Chorale and Philharmonic.",
       },
     ],
+    contact: {},
   },
   {
     id: 6,
     position: "Director of Welfare",
     name: "Obigba Elo",
+    slug: "obigba-elo",
     image: IMAGES.elo,
     about: [
       {
@@ -188,6 +203,7 @@ export const BoardOfDirectors = [
         text: "With her unique blend of entrepreneurial acumen and artistic talent, Obigba Elo continues to inspire and make a lasting impact in her community.",
       },
     ],
+    contact: {},
   },
 ];
 
@@ -221,7 +237,7 @@ export const performances: Performance[] = [
     date: "30th July, 2023",
     location: "Victor Uwaifo Creative Hub",
     image: IMAGES.bcs4,
-    link: "https://www.facebook.com/share/v/17X9VNSGyG/?mibextid=wwXIfr"
+    link: "https://www.facebook.com/share/v/17X9VNSGyG/?mibextid=wwXIfr",
   },
   {
     id: 4,
@@ -229,7 +245,7 @@ export const performances: Performance[] = [
     date: "28th April, 2024",
     location: "Victor Uwaifo Creative Hub",
     image: IMAGES.bcs4,
-    link: "https://www.facebook.com/share/v/15c63Eiz3p/?mibextid=wwXIfr"
+    link: "https://www.facebook.com/share/v/15c63Eiz3p/?mibextid=wwXIfr",
   },
   {
     id: 5,
@@ -237,7 +253,7 @@ export const performances: Performance[] = [
     date: "1st December, 2024",
     location: "Victor Uwaifo Creative Hub",
     image: IMAGES.cbf,
-    link: "https://www.facebook.com/share/v/15ksCVNnPN/?mibextid=wwXIfr"
+    link: "https://www.facebook.com/share/v/15ksCVNnPN/?mibextid=wwXIfr",
   },
   {
     id: 6,
@@ -245,6 +261,6 @@ export const performances: Performance[] = [
     date: "1st December, 2024",
     location: "Victor Uwaifo Creative Hub",
     image: IMAGES.birthday,
-    link: "https://www.facebook.com/share/v/1E9FyyVZUL/?mibextid=wwXIfr"
+    link: "https://www.facebook.com/share/v/1E9FyyVZUL/?mibextid=wwXIfr",
   },
 ];

@@ -1,2 +1,133 @@
 @import "tailwindcss";
 
+/* ---------- Custom Theme Layer ---------- */
+@layer base {
+  :root {
+    --bcs-primary: #b9704a;
+    --bcs-dark: #2c2c2c;
+    --bcs-light: #f9f9f9;
+    --bcs-green: #415c41;
+    --bcs-muted: #98916d;
+    /* --bcs-accent: #b9704a; */
+    --bcs-accent: #c57e52;
+    --bcs-bg: #f9f9f7;
+    --bcs-text: #1a1a1a;
+    --bcs-font-serif: "Merriweather", serif;
+    --bcs-font-sans: "Inter", system-ui, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-family: var(--bcs-font-sans);
+    color: var(--bcs-text);
+    background-color: var(--bcs-bg);
+  }
+
+  body {
+    @apply antialiased text-gray-800 leading-relaxed;
+  }
+
+  ::selection {
+    background-color: rgb(185 112 74 / 0.2);
+  }
+
+  a {
+    color: var(--bcs-accent);
+    transition: color 0.3s;
+  }
+
+  a:hover {
+    color: var(--bcs-green);
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full font-medium text-white transition-colors duration-300 shadow-sm;
+    background-color: var(--bcs-green);
+  }
+
+  .btn:hover {
+    background-color: var(--bcs-accent);
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--bcs-green);
+    color: var(--bcs-green);
+    transition: all 0.3s;
+  }
+
+  .btn-outline:hover {
+    background-color: var(--bcs-green);
+    color: white;
+  }
+
+  section {
+    @apply py-20 md:py-28;
+  }
+
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s ease-out;
+  }
+
+  [data-reveal].revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .card-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+  }
+
+  .hover-lift {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* ---------- Utilities Layer ---------- */
+.text-bcs-primary {
+  color: var(--bcs-primary);
+}
+
+.bg-bcs-primary {
+  background-color: var(--bcs-primary);
+}
+
+.border-bcs-primary {
+  border-color: var(--bcs-primary);
+}
+
+.text-bcs-green {
+  color: var(--bcs-green);
+}
+
+.text-bcs-muted {
+  color: var(--bcs-muted);
+}
+
+.bg-bcs-green {
+  background-color: var(--bcs-green);
+}
+
+.bg-bcs-accent {
+  background-color: var(--bcs-accent);
+}
+
+.bg-bcs-muted {
+  background-color: var(--bcs-muted);
+}
+
+.border-bcs-accent {
+  border-color: var(--bcs-accent);
+}
