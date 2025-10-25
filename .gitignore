@@ -41,3 +41,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# git branch -m v2 main
+# git fetch origin
+# git branch -u origin/main main
+# git remote set-head origin -a
