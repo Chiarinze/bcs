@@ -52,7 +52,7 @@ export const PartLeaders = [
     id: 3,
     title: "Tenor Part Leader",
     name: "Aifuwa Osamudiamen Ebenezer ",
-    image: IMAGES.esohe,
+    image: IMAGES.osamu,
   },
   {
     id: 4,
@@ -64,7 +64,7 @@ export const PartLeaders = [
     id: 5,
     title: "Concert Master",
     name: "George Paul",
-    image: IMAGES.emma,
+    image: IMAGES.paul,
   },
 ];
 
@@ -74,7 +74,7 @@ export const BoardOfDirectors = [
     position: "Executive and Artistic Director",
     name: "Otamere Osarodion Emmanuel",
     slug: "otamere-osarodion-emmanuel",
-    image: IMAGES.barr,
+    image: IMAGES.md,
     about: [
       {
         id: 1,
@@ -97,11 +97,7 @@ export const BoardOfDirectors = [
         text: "His contributions to music education and performance continue to impact the Nigerian music landscape, positioning him as a leading advocate for the growth of structured music training and cultural preservation.",
       },
     ],
-    contact: {
-      email: "otamere@bcpnigeria.org",
-      linkedin: "https://www.linkedin.com/in/otamereosarodion",
-      instagram: "https://www.instagram.com/otamereosarodion",
-    },
+    contact: {},
   },
   {
     id: 2,
@@ -126,7 +122,7 @@ export const BoardOfDirectors = [
     position: "Director of Public Relations and Digital Communications",
     name: "Akhanoba Henshaw",
     slug: "akhanoba-henshaw",
-    image: IMAGES.barr,
+    image: IMAGES.henshaw,
     about: [
       {
         id: 1,
@@ -140,7 +136,7 @@ export const BoardOfDirectors = [
     position: "Director of Administration and Board Secretary",
     name: "John Eifediyi",
     slug: "john-eifediyi",
-    image: IMAGES.barr,
+    image: IMAGES.john,
     about: [
       {
         id: 1,
@@ -162,7 +158,7 @@ export const BoardOfDirectors = [
     position: "Director of Productions",
     name: "Jude Onyinyechukwu Dumme",
     slug: "jude-onyinyechukwu-dumme",
-    image: IMAGES.barr,
+    image: IMAGES.jude,
     about: [
       {
         id: 1,
@@ -222,7 +218,7 @@ export const performances: Performance[] = [
     title: "10th Anniversary Concert",
     date: "4th September, 2022",
     location: "Benin City",
-    image: IMAGES.bcs4,
+    image: IMAGES.anniversary,
   },
   {
     id: 2,
@@ -235,23 +231,23 @@ export const performances: Performance[] = [
     id: 3,
     title: "Moment of Worship",
     date: "30th July, 2023",
-    location: "Victor Uwaifo Creative Hub",
-    image: IMAGES.bcs4,
+    location: "Benin City",
+    image: IMAGES.mow,
     link: "https://www.facebook.com/share/v/17X9VNSGyG/?mibextid=wwXIfr",
   },
   {
     id: 4,
     title: "Handel's Messiah Concert",
     date: "28th April, 2024",
-    location: "Victor Uwaifo Creative Hub",
-    image: IMAGES.bcs4,
+    location: "St. Peters the Apostles Hall, Benin City",
+    image: IMAGES.hmc,
     link: "https://www.facebook.com/share/v/15c63Eiz3p/?mibextid=wwXIfr",
   },
   {
     id: 5,
     title: "Christmas with Brojays and Friends",
     date: "1st December, 2024",
-    location: "Victor Uwaifo Creative Hub",
+    location: "Victor Uwaifo Creative Hub, Benin City",
     image: IMAGES.cbf,
     link: "https://www.facebook.com/share/v/15ksCVNnPN/?mibextid=wwXIfr",
   },
@@ -259,8 +255,39 @@ export const performances: Performance[] = [
     id: 6,
     title: "Birthday Thanksgiving of Sir. Allan Omorogbe",
     date: "1st December, 2024",
-    location: "Victor Uwaifo Creative Hub",
+    location: "GRA, Benin City",
     image: IMAGES.birthday,
     link: "https://www.facebook.com/share/v/1E9FyyVZUL/?mibextid=wwXIfr",
+  },
+  {
+    id: 7,
+    title: "Festival of Worship 2025",
+    date: "27th April, 2025",
+    location: "St. Peters the Apostles Hall, Benin City",
+    image: IMAGES.fow25,
+    link: "https://www.facebook.com/share/v/1HPWkpPXyL/",
+  },
+  {
+    id: 8,
+    title: "Funeral Service of Late Pa Henry Omorogieva Akpata",
+    date: "15th May, 2025",
+    location: "Uyi Grand Marquee, Benin City",
+    image: IMAGES.funeral,
+    link: "https://www.facebook.com/share/v/19pbrP2kem/",
+  },
+  {
+    id: 9,
+    title: "Moment of Worship 2025",
+    date: "20th July, 2025",
+    location: "Rickrex Event City, Benin City",
+    image: IMAGES.mow25,
+    link: "https://www.facebook.com/share/v/17Vs8FiFAx/",
+  },
+  {
+    id: 10,
+    title: "Unrestrained 2025",
+    date: "08th June, 2025",
+    location: "The Historic Miracle Centre, Benin City",
+    image: IMAGES.unstoppable,
   },
 ];

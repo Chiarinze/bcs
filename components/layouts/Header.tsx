@@ -65,7 +65,13 @@ export const Header = () => {
             <Link
               key={item.name}
               href={item.href}
-              className="text-sm text-gray-700 hover:text-bcs-accent font-medium transition-colors"
+              className={clsx(
+                "text-sm font-medium transition-colors",
+                isScrolled
+                  ? "text-gray-800 hover:underline"
+                  : "text-white hover:underline"
+              )}
+              // className="text-sm text-gray-700 hover:text-bcs-accent font-medium transition-colors"
             >
               {item.name}
             </Link>

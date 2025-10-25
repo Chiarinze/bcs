@@ -1,6 +1,6 @@
 import { BoardOfDirectors } from "@/data";
 import Image from "next/image";
-import { Mail, Linkedin } from "lucide-react";
+// import { Mail, Linkedin } from "lucide-react";
 import { BackButton } from "@/components/ui/BackButton";
 import { RevealWrapper } from "@/components/RevealWrapper";
 import Script from "next/script";
@@ -63,7 +63,7 @@ export default async function BoardMemberPage({
     );
   }
 
-  const { contact } = member;
+  // const { contact } = member;
 
   const profileSchema = {
     "@context": "https://schema.org",
@@ -111,7 +111,7 @@ export default async function BoardMemberPage({
               ))}
             </div>
 
-            {contact && (contact.email || contact.linkedin) && (
+            {/* {contact && (contact.email || contact.linkedin) && (
               <div
                 className="mt-10 w-full grid md:grid-cols-2 gap-6"
                 data-reveal
@@ -141,7 +141,7 @@ export default async function BoardMemberPage({
                   </div>
                 )}
               </div>
-            )}
+            )} */}
 
             {/* Separator */}
             <div className="w-full h-[1px] bg-bcs-accent my-8" data-reveal />

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { performances } from "@/data";
 import Image from "next/image";
@@ -7,6 +7,13 @@ import Button from "@/components/ui/Button";
 import Link from "next/link";
 
 export default function Performances() {
+  const sortedPerformances = [...performances].sort((a, b) => {
+    const dateA = new Date(a.date!);
+    const dateB = new Date(b.date!);
+
+    return dateB.getTime() - dateA.getTime();
+  });
+
   return (
     <RevealWrapper>
       <section className="bg-[#F9F9F7] py-24 md:py-28 px-4">
@@ -28,7 +35,7 @@ export default function Performances() {
             className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10"
             data-reveal
           >
-            {performances.map((performance) => (
+            {sortedPerformances.map((performance) => (
               <div
                 key={performance.id}
                 className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition card-hover"

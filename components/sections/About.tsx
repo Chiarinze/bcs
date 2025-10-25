@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { Arms, BoardOfDirectors, Management, PartLeaders } from "@/data";
 import Image from "next/image";
@@ -125,16 +125,21 @@ export default function About() {
               We perform a range of music — both sacred and secular — including:
             </p>
             <ul className="flex flex-wrap justify-center gap-3 text-bcs-green font-medium">
-              {["Classical", "Pop", "Jazz", "Soul", "Folk", "African Traditional"].map(
-                (style) => (
-                  <li
-                    key={style}
-                    className="px-4 py-2 bg-[#F0EFEA] rounded-full border border-gray-200"
-                  >
-                    {style}
-                  </li>
-                )
-              )}
+              {[
+                "Classical",
+                "Pop",
+                "Jazz",
+                "Soul",
+                "Folk",
+                "African Traditional",
+              ].map((style) => (
+                <li
+                  key={style}
+                  className="px-4 py-2 bg-[#F0EFEA] rounded-full border border-gray-200"
+                >
+                  {style}
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -205,7 +210,7 @@ export default function About() {
                     alt={member.name}
                     width={160}
                     height={160}
-                    className="rounded-full object-cover mb-4"
+                    className="rounded-full object-cover mb-4 w-40 h-40"
                   />
                   <h4 className="font-serif text-lg text-bcs-green">
                     {member.name}
@@ -251,7 +256,7 @@ export default function About() {
                     alt={leader.name}
                     width={160}
                     height={160}
-                    className="rounded-full object-cover mb-4"
+                    className="rounded-full object-cover mb-4 w-40 h-40"
                   />
                   <h4 className="font-serif text-lg text-bcs-green">
                     {leader.name}
