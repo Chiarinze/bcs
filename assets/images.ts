@@ -10,6 +10,8 @@ import enima from "./images/enina.webp";
 import esohe from "./images/esohe.webp";
 import evc from "./images/evc.webp";
 import success from "./images/success.webp";
+import md from "./images/md.jpg"
+import henshaw from "./image"
 
 export const IMAGES = {
   logo,
