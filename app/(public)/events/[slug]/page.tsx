@@ -13,23 +13,41 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = params;
+
   const { data: event } = await supabase
     .from("events")
-    .select("*")
+    .select("title, description, image_url")
     .eq("slug", slug)
     .single();
 
-  if (!event) {
-    return { title: "Event Not Found | The Benin Chorale & Philharmonic" };
-  }
+  if (!event) return { title: "Event Not Found" };
+
+  const title = `Register for ${event.title}`;
+  const description = event.description || "Internal registration for members of the Benin Chorale & Philharmonic.";
+  const imageUrl = event.image_url || "/icon.jpeg";
 
   return {
-    title: `${event.title} | The Benin Chorale & Philharmonic`,
-    description: event.description?.slice(0, 160),
+    title,
+    description,
     openGraph: {
-      title: event.title,
-      description: event.description,
-      images: event.image_url ? [{ url: event.image_url }] : [],
+      title,
+      description,
+      type: "website",
+      url: `https://www.beninchoraleandphilharmonic.com/events/${slug}/register`,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: event.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [imageUrl],
     },
   };
 }
@@ -77,13 +95,22 @@ export default async function EventDetail({ params }: Props) {
 
             {/* Action Button */}
             <div className="mt-4 md:mt-0">
-              {event.is_paid ? (
+              {event.is_internal ? (
+                // Internal Event Button
+                <Link href={`/events/${event.slug}/register`}>
+                  <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
+                    Member Registration
+                  </Button>
+                </Link>
+              ) : event.is_paid ? (
+                // Paid Event Button
                 <Link href={`/events/${event.slug}/purchase`}>
                   <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
                     Buy Ticket
                   </Button>
                 </Link>
               ) : (
+                // Free Public Event Button
                 <Link href={`/events/${event.slug}/purchase`}>
                   <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
                     Register (Free)
@@ -128,50 +155,55 @@ export default async function EventDetail({ params }: Props) {
           </div>
 
           {/* Ticket Categories */}
-          {event.is_paid && categories && categories.length > 0 && (
-            <div className="border-t border-gray-100 pt-8 mt-8">
-              <h2 className="text-2xl font-serif text-bcs-green mb-4">
-                Available Tickets
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Choose your preferred ticket category and proceed to payment.
-              </p>
+          {!event.is_internal &&
+            event.is_paid &&
+            categories &&
+            categories.length > 0 && (
+              <div className="border-t border-gray-100 pt-8 mt-8">
+                <h2 className="text-2xl font-serif text-bcs-green mb-4">
+                  Available Tickets
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  Choose your preferred ticket category and proceed to payment.
+                </p>
 
-              <ul className="grid sm:grid-cols-2 gap-4">
-                {categories.map((cat: TicketCategory) => (
-                  <li
-                    key={cat.id}
-                    className="p-4 bg-[#fdfcfb] border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium text-bcs-green">{cat.name}</p>
-                        <p className="text-gray-500 text-sm">
-                          ₦{cat.price.toLocaleString()}
-                        </p>
-                      </div>
-                      <Link
-                        href={{
-                          pathname: `/events/${event.slug}/purchase`,
-                          query: { category: cat.name, price: cat.price },
-                        }}
-                      >
-                        <Button
-                          variant="outline"
-                          className="text-sm px-4 py-1 rounded-full"
+                <ul className="grid sm:grid-cols-2 gap-4">
+                  {categories.map((cat: TicketCategory) => (
+                    <li
+                      key={cat.id}
+                      className="p-4 bg-[#fdfcfb] border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium text-bcs-green">
+                            {cat.name}
+                          </p>
+                          <p className="text-gray-500 text-sm">
+                            ₦{cat.price.toLocaleString()}
+                          </p>
+                        </div>
+                        <Link
+                          href={{
+                            pathname: `/events/${event.slug}/purchase`,
+                            query: { category: cat.name, price: cat.price },
+                          }}
                         >
-                          Buy ₦{cat.price.toLocaleString()}
-                        </Button>
-                      </Link>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+                          <Button
+                            variant="outline"
+                            className="text-sm px-4 py-1 rounded-full"
+                          >
+                            Buy ₦{cat.price.toLocaleString()}
+                          </Button>
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
           {/* Free Registration Section */}
-          {!event.is_paid && (
+          {!event.is_internal && !event.is_paid && (
             <div className="border-t border-gray-100 pt-8 mt-8">
               <h2 className="text-2xl font-serif text-bcs-green mb-4">
                 Free Registration
@@ -183,6 +215,25 @@ export default async function EventDetail({ params }: Props) {
               <Link href={`/events/${event.slug}/purchase`}>
                 <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
                   Register Now
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {/* Internal Event Info Box */}
+          {event.is_internal && (
+            <div className="border-t border-gray-100 pt-8 mt-8">
+              <h2 className="text-2xl font-serif text-bcs-green mb-4">
+                Member Information
+              </h2>
+              <p className="text-gray-600 mb-4">
+                This event is restricted to members of the Benin Chorale &
+                Philharmonic. You will be required to provide an access code to
+                proceed with registration.
+              </p>
+              <Link href={`/events/${event.slug}/register`}>
+                <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
+                  Enter Access Code
                 </Button>
               </Link>
             </div>

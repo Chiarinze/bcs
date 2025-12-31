@@ -1,146 +1,110 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import PDFDocument from "pdfkit/js/pdfkit.standalone.js";
 import { Readable } from "stream";
 
-interface Attendee {
-  buyer_name: string;
-  buyer_email: string;
-  category: string;
-  amount_paid: number;
-}
+// interface Attendee {
+//   buyer_name: string;
+//   buyer_email: string;
+//   category: string;
+//   amount_paid: number;
+// }
 
-interface EventRecord {
-  title: string;
-}
+// interface EventRecord {
+//   title: string;
+// }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(req.url);
     const event_id = searchParams.get("event_id");
-
-    if (!event_id) {
-      return NextResponse.json({ error: "Missing event_id" }, { status: 400 });
-    }
-
     const supabase = createServerSupabase();
 
-    const { data: eventData, error: eventError } = await supabase
+    if (!event_id) return NextResponse.json({ error: "Missing event_id" }, { status: 400 });
+
+    // 1. Get Event Type
+    const { data: event, error: eventError } = await supabase
       .from("events")
-      .select("title")
+      .select("title, is_internal")
       .eq("id", event_id)
       .single();
 
-    if (eventError || !eventData) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    if (eventError || !event) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let attendeeData: any[] = [];
+
+    // 2. Fetch Data based on type
+    if (event.is_internal) {
+      const { data } = await supabase
+        .from("internal_event_registrations")
+        .select("first_name, last_name, email, ensemble_arm, join_year")
+        .eq("event_id", event_id)
+        .order("last_name", { ascending: true });
+      attendeeData = data || [];
+    } else {
+      const { data } = await supabase
+        .from("tickets")
+        .select("buyer_name, buyer_email, category, amount_paid")
+        .eq("event_id", event_id)
+        .order("buyer_name", { ascending: true });
+      attendeeData = data || [];
     }
 
-    const event = eventData as EventRecord;
+    if (!attendeeData.length) return NextResponse.json({ error: "No attendees found" }, { status: 404 });
 
-    const { data: attendeeData, error } = await supabase
-      .from("tickets")
-      .select("buyer_name, buyer_email, category, amount_paid")
-      .eq("event_id", event_id)
-      .order("buyer_name", { ascending: true });
-
-    if (error) throw error;
-    if (!attendeeData?.length) {
-      return NextResponse.json(
-        { error: "No attendees found" },
-        { status: 404 }
-      );
-    }
-
-    // ✅ Generate PDF
-    const doc = new PDFDocument({ margin: 50, size: "A4" });
+    // 3. Generate PDF
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
     const stream = Readable.from(doc as unknown as Iterable<Buffer>);
 
-    const tableTop = 120;
-    const rowHeight = 25;
-    const columnPositions = {
-      name: 50,
-      email: 200,
-      category: 400,
-      amount: 500,
-    };
+    // Title
+    doc.font("Times-Bold").fontSize(18).text(`${event.title} - Registered List`, { align: "center" });
+    doc.moveDown();
 
-    // Header
-    doc.font("Times-Bold").fontSize(18).text(`Attendee List — ${event.title}`, {
-      align: "center",
+    const tableTop = 100;
+    doc.fontSize(10).font("Times-Bold");
+
+    if (event.is_internal) {
+      // Internal Headers
+      doc.text("Name", 50, tableTop);
+      doc.text("Email", 200, tableTop);
+      doc.text("Arm", 380, tableTop);
+      doc.text("Year", 500, tableTop);
+    } else {
+      // Public Headers
+      doc.text("Name", 50, tableTop);
+      doc.text("Email", 200, tableTop);
+      doc.text("Category", 380, tableTop);
+      doc.text("Amount", 500, tableTop);
+    }
+
+    let y = tableTop + 20;
+    doc.font("Times-Roman").fontSize(9);
+
+    attendeeData.forEach((a, i) => {
+      if (y > 750) { doc.addPage(); y = 50; }
+      
+      const name = event.is_internal ? `${a.first_name} ${a.last_name}` : a.buyer_name;
+      const email = event.is_internal ? a.email : a.buyer_email;
+      const col3 = event.is_internal ? a.ensemble_arm : a.category;
+      const col4 = event.is_internal ? a.join_year : `N${a.amount_paid}`;
+
+      doc.text(name || "-", 50, y);
+      doc.text(email || "-", 200, y, { width: 170 });
+      doc.text(col3 || "-", 380, y);
+      doc.text(String(col4 || "-"), 500, y);
+      y += 20;
     });
-    doc.moveDown(1);
-
-    // Draw table headers background
-    doc
-      .rect(45, tableTop - 5, 510, 25)
-      .fill("#f0f0f0")
-      .stroke();
-    doc.fillColor("#000").fontSize(12).font("Times-Bold");
-
-    doc.text("Name", columnPositions.name, tableTop);
-    doc.text("Email", columnPositions.email, tableTop);
-    doc.text("Category", columnPositions.category, tableTop);
-    doc.text("Amount", columnPositions.amount, tableTop, { align: "right" });
-
-    let y = tableTop + rowHeight;
-
-    doc.font("Times-Roman").fontSize(11);
-
-    // Rows
-    (attendeeData as Attendee[]).forEach((a: Attendee, i: number) => {
-      const isEven = i % 2 === 0;
-
-      if (isEven) {
-        // light background for alternating rows
-        doc
-          .rect(45, y - 5, 510, rowHeight)
-          .fill("#fafafa")
-          .stroke();
-        doc.fillColor("#000");
-      }
-
-      doc.text(a.buyer_name || "-", columnPositions.name, y);
-      doc.text(a.buyer_email || "-", columnPositions.email, y, { width: 180 });
-      doc.text(a.category || "-", columnPositions.category, y);
-      doc.text(
-        `₦${a.amount_paid?.toLocaleString() || "0"}`,
-        columnPositions.amount,
-        y,
-        { align: "right" }
-      );
-
-      y += rowHeight;
-
-      // Page break
-      if (y > 750) {
-        doc.addPage();
-        y = tableTop;
-      }
-    });
-
-    doc
-      .fontSize(9)
-      .fillColor("gray")
-      .text(`Generated on ${new Date().toLocaleDateString()}`, 50, 780, {
-        align: "center",
-      });
 
     doc.end();
-
     return new NextResponse(stream as unknown as BodyInit, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${event.title
-          .replace(/\s+/g, "_")
-          .toLowerCase()}_attendees.pdf"`,
+        "Content-Disposition": `attachment; filename="attendees.pdf"`,
       },
     });
   } catch (error) {
-    const err = error as Error;
-    console.error("PDF download error:", err.message);
-    return NextResponse.json(
-      { error: "Failed to generate attendee PDF" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 });
   }
 }

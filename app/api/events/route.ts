@@ -24,11 +24,18 @@ export async function POST(req: NextRequest) {
   const supabase = createServerSupabase();
   const body = await req.json();
 
-  const { categories, ...eventData } = body;
+  const { categories, is_internal, access_code, ...eventData } = body;
+
+  const insertData = {
+    ...eventData,
+    is_internal: is_internal || false,
+    // Only save access code if it is an internal event
+    access_code: is_internal ? access_code : null, 
+  };
 
   const { data: event, error } = await supabase
     .from("events")
-    .insert([eventData])
+    .insert([insertData])
     .select()
     .single();
 

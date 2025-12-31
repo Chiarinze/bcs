@@ -10,6 +10,8 @@ export interface Event {
   image_url?: string | null;
   image_blur_data?: string | null;
   created_at?: string;
+  is_internal?: boolean;
+  access_code?: string;
 }
 
 export interface Ticket {

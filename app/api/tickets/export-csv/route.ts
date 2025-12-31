@@ -1,89 +1,43 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic"; // always fetch fresh data
 
-interface Attendee {
-  buyer_name: string;
-  buyer_email: string;
-  category: string | null;
-  amount_paid: number | null;
-  created_at: string;
-}
+// interface Attendee {
+//   buyer_name: string;
+//   buyer_email: string;
+//   category: string | null;
+//   amount_paid: number | null;
+//   created_at: string;
+// }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const event_id = searchParams.get("event_id");
-  const search = searchParams.get("search") || "";
-  const category = searchParams.get("category") || "";
+  const supabase = createServerSupabase();
 
-  if (!event_id) {
-    return NextResponse.json({ error: "Missing event_id" }, { status: 400 });
-  }
+  const { data: event } = await supabase.from("events").select("is_internal").eq("id", event_id).single();
 
-  try {
-    const supabase = createServerSupabase();
+  let headers: string[] = [];
+  let rows: any[] = [];
 
-    let query = supabase
-      .from("tickets")
-      .select("buyer_name,buyer_email,category,amount_paid,created_at")
-      .eq("event_id", event_id)
-      .order("created_at", { ascending: false });
-
-    if (search.trim() !== "") {
-      query = query.or(
-        `buyer_name.ilike.%${search.trim()}%,buyer_email.ilike.%${search.trim()}%`
-      );
-    }
-
-    if (category.trim() !== "") {
-      query = query.eq("category", category);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw new Error(error.message);
-    if (!data || data.length === 0) {
-      return NextResponse.json(
-        { error: "No attendees found" },
-        { status: 404 }
-      );
-    }
-
-    // Convert to CSV
-    const headers = [
-      "Name",
-      "Email",
-      "Category",
-      "Amount Paid (₦)",
-      "Registered At",
-    ];
-
-    const rows = (data as Attendee[]).map((a: Attendee) => [
-      a.buyer_name,
-      a.buyer_email,
-      a.category || "",
-      a.amount_paid?.toLocaleString() || "0",
-      new Date(a.created_at).toLocaleString(),
+  if (event?.is_internal) {
+    const { data } = await supabase.from("internal_event_registrations").select("*").eq("event_id", event_id);
+    headers = ["First Name", "Last Name", "Email", "Arm", "Part", "Year", "Medical"];
+    rows = (data || []).map((a: { first_name: any; last_name: any; email: any; ensemble_arm: any; choir_part: any; orchestra_instrument: any; join_year: any; has_medical_condition: any; }) => [
+      a.first_name, a.last_name, a.email, a.ensemble_arm, 
+      a.choir_part || a.orchestra_instrument, a.join_year, a.has_medical_condition ? "Yes" : "No"
     ]);
-
-    const csv = [headers, ...rows]
-      .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
-      )
-      .join("\n");
-
-    return new NextResponse(csv, {
-      headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="attendees-${event_id}.csv"`,
-      },
-    });
-  } catch (err) {
-    console.error("CSV export error:", err);
-    return NextResponse.json(
-      { error: "Failed to generate CSV" },
-      { status: 500 }
-    );
+  } else {
+    const { data } = await supabase.from("tickets").select("*").eq("event_id", event_id);
+    headers = ["Name", "Email", "Category", "Amount"];
+    rows = (data || []).map((a: { buyer_name: any; buyer_email: any; category: any; amount_paid: any; }) => [a.buyer_name, a.buyer_email, a.category, a.amount_paid]);
   }
+
+  const csv = [headers, ...rows].map(r => r.map((c: any) => `"${c}"`).join(",")).join("\n");
+
+  return new NextResponse(csv, {
+    headers: { "Content-Type": "text/csv", "Content-Disposition": `attachment; filename="export.csv"` }
+  });
 }

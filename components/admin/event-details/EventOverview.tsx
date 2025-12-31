@@ -9,12 +9,23 @@ export default function EventOverview({ event, totalTickets }: Props) {
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
       <div>
         <p className="text-sm text-gray-500">Event Type</p>
-        <p className="font-semibold">{event.is_paid ? "Paid" : "Free"}</p>
+        <p className="font-semibold text-bcs-green">
+          {event.is_internal ? "Internal (Members)" : event.is_paid ? "Paid" : "Free"}
+        </p>
       </div>
-      <div>
-        <p className="text-sm text-gray-500">Total Registrations</p>
-        <p className="font-semibold">{totalTickets}</p>
-      </div>
+      
+      {event.is_internal ? (
+        <div>
+           <p className="text-sm text-gray-500">Access Code</p>
+           <code className="font-mono bg-gray-100 px-2 py-0.5 rounded text-bcs-primary">{event.access_code}</code>
+        </div>
+      ) : (
+        <div>
+          <p className="text-sm text-gray-500">Total Registrations</p>
+          <p className="font-semibold">{totalTickets}</p>
+        </div>
+      )}
+
       <div>
         <p className="text-sm text-gray-500">Date</p>
         <p className="font-semibold">{new Date(event.date).toLocaleDateString()}</p>
