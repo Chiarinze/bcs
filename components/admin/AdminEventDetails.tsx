@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import EventOverview from "./event-details/EventOverview";
 import AttendeesSection from "./event-details/AttendeesSection";
 import CouponsSection from "./event-details/CouponsSection";
+import DocumentsSection from "./event-details/DocumentsSection";
 
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,13 +53,12 @@ export default function AdminEventDetails({ event, totalTickets, categories, cod
         </div>
       </div>
 
-      {/* Overview */}
       <EventOverview event={event} totalTickets={totalTickets} />
 
-      {/* Attendees */}
+      <DocumentsSection event={event} />
+
       <AttendeesSection event={event} categories={categories} />
 
-      {/* Coupons */}
       {event.is_paid && !event.is_internal && <CouponsSection event={event} codes={codes} />}
     </div>
   );

@@ -76,10 +76,10 @@ export async function DELETE(_req: NextRequest, context: ParamsType) {
   const { slug } = resolvedParams;
 
   try {
-    // ✅ Find event ID first
+    // 1. Find event ID and associated documents first
     const { data: event, error: findError } = await supabase
       .from("events")
-      .select("id")
+      .select("id, event_documents(storage_path)")
       .eq("slug", slug)
       .single();
 
@@ -87,10 +87,36 @@ export async function DELETE(_req: NextRequest, context: ParamsType) {
       throw new Error("Event not found");
     }
 
-    // Delete categories, then event
+    // 2. Cleanup physical files from Supabase Storage
+    // We do this before deleting the DB record so we still have the paths
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const storagePaths = event.event_documents?.map((doc: any) => doc.storage_path) || [];
+    
+    if (storagePaths.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from("event-documents")
+        .remove(storagePaths);
+      
+      if (storageError) {
+        console.error("Storage Cleanup Error:", storageError.message);
+        // We continue anyway, so the DB record doesn't get stuck 
+        // due to a minor storage glitch
+      }
+    }
+
+    // 3. Delete related data and the event
+    // Note: ticket_categories doesn't have CASCADE in your current file, 
+    // so we delete manually as you did before.
     await supabase.from("ticket_categories").delete().eq("event_id", event.id);
-    const { error } = await supabase.from("events").delete().eq("id", event.id);
-    if (error) throw error;
+    
+    // event_documents will be deleted automatically by DB Cascade 
+    // when the event is deleted below:
+    const { error: deleteError } = await supabase
+      .from("events")
+      .delete()
+      .eq("id", event.id);
+
+    if (deleteError) throw deleteError;
 
     // Revalidate public events list
     await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/revalidate`, {
