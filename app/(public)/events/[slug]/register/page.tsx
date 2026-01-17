@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import InternalRegistrationForm from "@/components/events/InternalRegistrationForm";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import AuditionRegistrationForm from "@/components/events/AuditionRegistrationForm";
 
 interface Props {
   params: { slug: string };
@@ -56,18 +57,17 @@ export default async function EventRegisterPage({ params }: Props) {
   // Fetch event details
   const { data: event } = await supabase
     .from("events")
-    .select("id, title, is_internal")
+    .select("id, title, is_internal, event_type")
     .eq("slug", slug)
     .single();
 
   if (!event) notFound();
 
-  // If it's NOT an internal event, this page shouldn't be accessed manually this way, 
-  // or you could redirect to the purchase page.
-  if (!event.is_internal) {
+  // If it's a standard public event, redirect to purchase/tickets
+  if (event.event_type === 'standard' && !event.is_internal) {
      return (
         <div className="min-h-[50vh] flex flex-col items-center justify-center p-4">
-            <h1 className="text-xl mb-4">This is a public event.</h1>
+            <h1 className="text-xl mb-4">This event uses standard ticket registration.</h1>
             <Link href={`/events/${slug}/purchase`}>
                 <Button>Go to Ticket Page</Button>
             </Link>
@@ -79,10 +79,16 @@ export default async function EventRegisterPage({ params }: Props) {
     <section className="py-16 md:py-24 bg-[#F9F9F7] px-4">
       <div className="max-w-4xl mx-auto text-center mb-10">
         <h1 className="text-3xl font-serif text-bcs-green mb-2">{event.title}</h1>
-        <p className="text-gray-500">Internal Registration</p>
+        <p className="text-gray-500 capitalize">
+          {event.event_type === 'audition' ? "Audition Registration" : "Internal Registration"}
+        </p>
       </div>
       
-      <InternalRegistrationForm eventId={event.id} eventSlug={slug} />
+      {event.event_type === 'audition' ? (
+        <AuditionRegistrationForm eventId={event.id} />
+      ) : (
+        <InternalRegistrationForm eventId={event.id} eventSlug={slug} />
+      )}
     </section>
   );
 }

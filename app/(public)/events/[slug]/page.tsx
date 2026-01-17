@@ -91,6 +91,8 @@ export default async function EventDetail({ params }: Props) {
   const categories = categoriesRes.data;
   const documents = docsRes.data;
 
+  const isAudition = event.event_type === "audition";
+
   return (
     <section className="py-16 md:py-20 bg-[#F9F9F7] px-4">
       <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -117,25 +119,22 @@ export default async function EventDetail({ params }: Props) {
 
             {/* Action Button */}
             <div className="mt-4 md:mt-0">
-              {event.is_internal ? (
-                // Internal Event Button
+              {event.event_type === "audition" ? (
+                <Link href={`/events/${event.slug}/register`}>
+                  <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
+                    Register for Audition
+                  </Button>
+                </Link>
+              ) : event.is_internal ? (
                 <Link href={`/events/${event.slug}/register`}>
                   <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
                     Member Registration
                   </Button>
                 </Link>
-              ) : event.is_paid ? (
-                // Paid Event Button
-                <Link href={`/events/${event.slug}/purchase`}>
-                  <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
-                    Buy Ticket
-                  </Button>
-                </Link>
               ) : (
-                // Free Public Event Button
                 <Link href={`/events/${event.slug}/purchase`}>
                   <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
-                    Register (Free)
+                    {event.is_paid ? "Buy Ticket" : "Register (Free)"}
                   </Button>
                 </Link>
               )}
@@ -273,7 +272,7 @@ export default async function EventDetail({ params }: Props) {
             )}
 
           {/* Free Registration Section */}
-          {!event.is_internal && !event.is_paid && (
+          {!event.is_internal && !event.is_paid && !isAudition && (
             <div className="border-t border-gray-100 pt-8 mt-8">
               <h2 className="text-2xl font-serif text-bcs-green mb-4">
                 Free Registration

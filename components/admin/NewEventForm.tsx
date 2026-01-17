@@ -3,47 +3,42 @@
 import { useState } from "react";
 import { uploadEventImage } from "@/lib/uploadImage";
 import { useRouter } from "next/navigation";
-import {
-  TextInput,
-  TextArea,
-  // Checkbox,
-  FileInput,
-} from "@/components/ui/FormInputs";
+import { TextInput, TextArea, FileInput } from "@/components/ui/FormInputs";
 import Button from "@/components/ui/Button";
 
-interface TicketCategory {
-  name: string;
-  price: number;
-}
+type EventType = "standard" | "internal" | "audition";
+
+// interface TicketCategory {
+//   name: string;
+//   price: number;
+// }
 
 export default function NewEventForm() {
-  const [categories, setCategories] = useState<TicketCategory[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isInternal, setIsInternal] = useState(false);
+  const [eventType, setEventType] = useState<EventType>("standard");
   const [isPaid, setIsPaid] = useState(false);
+
+  // Reuse categories state: For standard it's tickets, for auditions it's time slots
+  const [categories, setCategories] = useState<
+    { name: string; price: number }[]
+  >([]);
 
   const router = useRouter();
 
-  function addCategory() {
+  const addCategory = () =>
     setCategories([...categories, { name: "", price: 0 }]);
-  }
-
-  function removeCategory(index: number) {
+  const removeCategory = (index: number) =>
     setCategories(categories.filter((_, i) => i !== index));
-  }
-
-  function updateCategory<K extends keyof TicketCategory>(
+  const updateCategory = (
     index: number,
-    field: K,
+    field: "name" | "price",
     value: string
-  ) {
+  ) => {
     const updated = [...categories];
-    updated[index][field] =
-      field === "price"
-        ? (Number(value) as TicketCategory[K])
-        : (value as TicketCategory[K]);
+    if (field === "price") updated[index].price = Number(value);
+    else updated[index].name = value;
     setCategories(updated);
-  }
+  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -66,14 +61,15 @@ export default function NewEventForm() {
         description: formData.get("description"),
         date: formData.get("date"),
         location: formData.get("location"),
-
-        is_internal: isInternal,
-        access_code: isInternal ? formData.get("access_code") : null,
-        is_paid: isInternal ? false : isPaid, // Force internal to be unpaid for now, or change logic if needed
-
+        event_type: eventType,
+        is_internal: eventType === "internal",
+        access_code:
+          eventType === "internal" ? formData.get("access_code") : null,
+        is_paid: eventType === "standard" ? isPaid : false,
         image_url,
         image_blur_data,
-        categories: isInternal ? [] : categories,
+        // Send categories as either tickets or time slots
+        categories: eventType === "internal" ? [] : categories,
       };
 
       const res = await fetch("/api/events", {
@@ -83,15 +79,6 @@ export default function NewEventForm() {
       });
 
       if (!res.ok) throw new Error("Failed to create event");
-
-      await fetch("/api/revalidate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: "/events",
-          adminKey: process.env.NEXT_PUBLIC_ADMIN_PASS,
-        }),
-      });
 
       router.push("/admin/events");
       router.refresh();
@@ -107,79 +94,101 @@ export default function NewEventForm() {
       onSubmit={handleSubmit}
       className="space-y-6 bg-white p-6 rounded-2xl shadow-sm border border-gray-100"
     >
-      <TextInput name="title" label="Event Title" required />
+      <TextInput
+        name="title"
+        label="Event Title"
+        placeholder="e.g., 2026 Choir Auditions"
+        required
+      />
       <TextArea name="description" label="Description" required />
-      <TextInput type="date" name="date" label="Date" required />
-      <TextInput name="location" label="Venue/Location" required />
+      <div className="grid grid-cols-2 gap-4">
+        <TextInput type="date" name="date" label="Date" required />
+        <TextInput name="location" label="Venue/Location" required />
+      </div>
 
-      {/* Event Type Toggles */}
+      {/* Type Selector */}
       <div className="bg-gray-50 p-4 rounded-xl space-y-4 border border-gray-100">
-        <h3 className="font-medium text-bcs-green">Event Settings</h3>
-
-        <div className="flex items-center gap-6">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isInternal}
-              onChange={(e) => setIsInternal(e.target.checked)}
-              className="h-4 w-4 text-bcs-green rounded border-gray-300 focus:ring-bcs-accent"
-            />
-            <span className="text-gray-700">Internal Event (Members Only)</span>
-          </label>
-
-          {!isInternal && (
-            <label className="flex items-center gap-2 cursor-pointer">
+        <h3 className="font-medium text-bcs-green">Event Type</h3>
+        <div className="flex flex-wrap gap-4">
+          {(["standard", "internal", "audition"] as const).map((type) => (
+            <label
+              key={type}
+              className="flex items-center gap-2 cursor-pointer capitalize"
+            >
               <input
-                type="checkbox"
-                name="is_paid"
-                checked={isPaid}
-                onChange={(e) => setIsPaid(e.target.checked)}
-                className="h-4 w-4 text-bcs-green rounded border-gray-300 focus:ring-bcs-accent"
+                type="radio"
+                name="event_type_radio"
+                checked={eventType === type}
+                onChange={() => {
+                  setEventType(type);
+                  setCategories([]); // Reset categories when type changes
+                }}
+                className="text-bcs-green focus:ring-bcs-accent"
               />
-              <span className="text-gray-700">Paid Public Event</span>
+              <span className="text-gray-700">{type}</span>
             </label>
-          )}
+          ))}
         </div>
 
-        {/* Access Code Input - Only if Internal */}
-        {isInternal && (
+        {eventType === "internal" && (
           <div className="pt-2 animate-in fade-in slide-in-from-top-2">
-            <TextInput
-              name="access_code"
-              label="Access Code (Required for members to register)"
-              placeholder="e.g., BCS-2024-MEM"
-              required={isInternal}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Members will need to enter this exact code to view the
-              registration form.
-            </p>
+            <TextInput name="access_code" label="Access Code" required />
           </div>
+        )}
+
+        {eventType === "standard" && (
+          <label className="flex items-center gap-2 cursor-pointer pt-2">
+            <input
+              type="checkbox"
+              checked={isPaid}
+              onChange={(e) => setIsPaid(e.target.checked)}
+              className="rounded text-bcs-green"
+            />
+            <span className="text-gray-700">This is a paid event</span>
+          </label>
         )}
       </div>
 
-      {/* Ticket Categories - Hide if Internal */}
-      {!isInternal && (
+      {/* Dynamic Section: Tickets OR Time Slots */}
+      {eventType !== "internal" && (
         <div className="space-y-3">
-          <h3 className="text-bcs-green font-medium">Ticket Categories</h3>
+          <h3 className="text-bcs-green font-medium">
+            {eventType === "audition"
+              ? "Audition Time Slots"
+              : "Ticket Categories"}
+          </h3>
+          <p className="text-xs text-gray-500">
+            {eventType === "audition"
+              ? "Add available time intervals for candidates to choose from."
+              : "Define ticket types and their prices."}
+          </p>
+
           {categories.map((cat, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              {/* Existing Category Inputs... */}
+            <div
+              key={i}
+              className="flex gap-2 items-center animate-in zoom-in-95 duration-200"
+            >
               <TextInput
                 value={cat.name}
                 onChange={(e) => updateCategory(i, "name", e.target.value)}
-                placeholder="Category Name"
+                placeholder={
+                  eventType === "audition"
+                    ? "e.g., 09:00 AM - 10:00 AM"
+                    : "Category Name"
+                }
                 className="flex-1"
                 required
               />
-              <TextInput
-                type="number"
-                value={cat.price}
-                onChange={(e) => updateCategory(i, "price", e.target.value)}
-                placeholder="Price"
-                className="w-32"
-                required
-              />
+              {eventType === "standard" && isPaid && (
+                <TextInput
+                  type="number"
+                  value={cat.price}
+                  onChange={(e) => updateCategory(i, "price", e.target.value)}
+                  placeholder="Price"
+                  className="w-32"
+                  required
+                />
+              )}
               <Button
                 type="button"
                 onClick={() => removeCategory(i)}
@@ -190,12 +199,8 @@ export default function NewEventForm() {
               </Button>
             </div>
           ))}
-          <Button
-            type="button"
-            onClick={addCategory}
-            className="bg-bcs-green hover:bg-bcs-accent"
-          >
-            + Add Category
+          <Button type="button" onClick={addCategory} className="text-sm py-2">
+            + Add {eventType === "audition" ? "Time Slot" : "Category"}
           </Button>
         </div>
       )}
@@ -203,12 +208,8 @@ export default function NewEventForm() {
       <FileInput name="image" accept="image/*" label="Event Flyer" />
 
       <div className="pt-4">
-        <Button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-bcs-accent hover:bg-bcs-green"
-        >
-          {loading ? "Saving..." : "Create Event"}
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? "Creating..." : "Create Event"}
         </Button>
       </div>
     </form>

@@ -7,7 +7,7 @@ interface Coupon {
   id: string;
   code: string;
   discount_percent: number;
-  is_active: boolean; // ✅ match Supabase + API
+  is_active: boolean;
   usage_count: number;
 }
 

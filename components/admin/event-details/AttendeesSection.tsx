@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Button from "@/components/ui/Button";
 import Image from "next/image";
+import { X } from "lucide-react";
 
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,35 +20,44 @@ export default function AttendeesSection({ event, categories }: Props) {
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const limit = 10;
   const isInternal = event.is_internal;
+  const isAudition = event.event_type === "audition";
 
   const fetchAttendees = useCallback(async () => {
     setLoading(true);
     try {
-      const url = isInternal 
-        ? `/api/internal-registrations?event_id=${event.id}&search=${encodeURIComponent(search)}`
-        : `/api/tickets/attendees?event_id=${event.id}&page=${page}&limit=${limit}&search=${encodeURIComponent(search)}&category=${encodeURIComponent(filterCategory)}`;
+      let url = "";
+      if (isAudition) {
+        url = `/api/auditions?event_id=${event.id}&search=${encodeURIComponent(
+          search
+        )}`;
+      } else if (isInternal) {
+        url = `/api/internal-registrations?event_id=${
+          event.id
+        }&search=${encodeURIComponent(search)}`;
+      } else {
+        url = `/api/tickets/attendees?event_id=${
+          event.id
+        }&page=${page}&limit=${limit}&search=${encodeURIComponent(
+          search
+        )}&category=${encodeURIComponent(filterCategory)}`;
+      }
 
       const res = await fetch(url);
       const data = await res.json();
-
       if (res.ok) {
-        if (isInternal) {
-          setAttendees(data);
-          setTotalPages(1);
-        } else {
-          setAttendees(data.attendees);
-          setTotalPages(data.totalPages);
-        }
+        setAttendees(isInternal || isAudition ? data : data.attendees);
+        setTotalPages(isInternal || isAudition ? 1 : data.totalPages);
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [event.id, isInternal, page, search, filterCategory]);
+  }, [event.id, isInternal, isAudition, page, search, filterCategory]);
 
   // Combined Debounced Effect
   useEffect(() => {
@@ -59,22 +69,27 @@ export default function AttendeesSection({ event, categories }: Props) {
     return () => clearTimeout(timeout);
   }, [search, filterCategory, page, fetchAttendees]);
 
-  async function handleDownload(type: 'pdf' | 'csv') {
-    const endpoint = type === 'pdf' ? 'download' : 'export-csv';
+  async function handleDownload(type: "pdf" | "csv") {
+    const endpoint = type === "pdf" ? "download" : "export-csv";
+
+    // Choose the base API route based on event type
+    const baseRoute = isAudition ? "/api/auditions" : "/api/tickets";
+
     const params = new URLSearchParams({ event_id: event.id, search });
-    if (!isInternal) params.append("category", filterCategory);
+    if (!isInternal && !isAudition) params.append("category", filterCategory);
 
     try {
-      const res = await fetch(`/api/tickets/${endpoint}?${params.toString()}`);
+      const res = await fetch(`${baseRoute}/${endpoint}?${params.toString()}`);
       if (!res.ok) throw new Error("Export failed");
-      
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${event.title}-attendees.${type}`;
+      a.download = `${event.title}-candidates.${type}`;
+      document.body.appendChild(a);
       a.click();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      a.remove();
     } catch (err) {
       alert("Failed to download.");
     }
@@ -82,6 +97,33 @@ export default function AttendeesSection({ event, categories }: Props) {
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      {/* --- IMAGE MODAL OVERLAY --- */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-3xl w-full h-[80vh] animate-in zoom-in-95 duration-200">
+            <button
+              className="absolute -top-12 right-0 text-white hover:text-bcs-accent transition flex items-center gap-2"
+              onClick={() => setSelectedImage(null)}
+            >
+              <span className="text-sm font-medium">Close</span>
+              <X size={24} />
+            </button>
+            <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+              <Image
+                src={selectedImage}
+                alt="Enlarged preview"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
         <h2 className="text-xl font-serif text-bcs-green">
           {isInternal ? "Registered Members" : "Attendees"}
@@ -137,13 +179,13 @@ export default function AttendeesSection({ event, categories }: Props) {
 
           <div className="flex gap-3">
             <Button
-              onClick={() => handleDownload('pdf')}
+              onClick={() => handleDownload("pdf")}
               className="bg-bcs-green hover:bg-bcs-accent"
             >
               Download PDF
             </Button>
             <Button
-              onClick={() => handleDownload('csv')}
+              onClick={() => handleDownload("csv")}
               variant="outline"
               className="border-bcs-green text-bcs-green hover:bg-bcs-green hover:text-white"
             >
@@ -161,8 +203,68 @@ export default function AttendeesSection({ event, categories }: Props) {
         <p className="text-gray-500">No records found.</p>
       ) : (
         <div className="overflow-x-auto">
-          {/* --- INTERNAL EVENT TABLE --- */}
-          {isInternal ? (
+          {isAudition ? (
+            /* --- AUDITION TABLE --- */
+            <table className="w-full text-sm border-t min-w-[1000px]">
+              <thead className="bg-gray-50 text-left">
+                <tr>
+                  <th className="p-3">Photo</th>
+                  <th className="p-3">Candidate</th>
+                  <th className="p-3">Type</th>
+                  <th className="p-3">Part/Inst</th>
+                  <th className="p-3">Scores (Solfa/Staff)</th>
+                  <th className="p-3">Preferred Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {attendees.map((a) => (
+                  <tr
+                    key={a.id}
+                    className="border-t hover:bg-gray-50 transition"
+                  >
+                    <td className="p-3">
+                      <div
+                        className="h-10 w-10 relative rounded-lg overflow-hidden border cursor-pointer hover:ring-2 hover:ring-bcs-accent transition shadow-sm"
+                        onClick={() => setSelectedImage(a.photo_url)}
+                        title="Click to enlarge"
+                      >
+                        <Image
+                          src={a.photo_url}
+                          alt="candidate"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <span className="font-medium">
+                        {a.first_name} {a.last_name}
+                      </span>
+                      <div className="text-xs text-gray-500">{a.email}</div>
+                    </td>
+                    <td className="p-3 capitalize">{a.audition_type}</td>
+                    <td className="p-3">
+                      {a.audition_type === "voice"
+                        ? a.voice_part
+                        : a.instrument_name}
+                    </td>
+                    <td className="p-3">
+                      <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded mr-1">
+                        🎼 {a.tonic_solfa_score}
+                      </span>
+                      <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded">
+                        🎵 {a.staff_notation_score}
+                      </span>
+                    </td>
+                    <td className="p-3 font-medium text-bcs-green">
+                      {a.preferred_time}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : isInternal ? (
+            /* --- INTERNAL EVENT TABLE --- */
             <table className="w-full text-sm border-t min-w-[800px]">
               <thead className="bg-gray-50 text-left">
                 <tr>
@@ -177,33 +279,62 @@ export default function AttendeesSection({ event, categories }: Props) {
               </thead>
               <tbody>
                 {attendees.map((a) => (
-                  <tr key={a.id} className="border-t hover:bg-gray-50 transition">
+                  <tr
+                    key={a.id}
+                    className="border-t hover:bg-gray-50 transition"
+                  >
                     <td className="p-3">
-                      <div className="h-10 w-10 relative rounded-full overflow-hidden border border-gray-200">
-                         {a.passport_url ? (
-                           <Image src={a.passport_url} alt="passport" fill className="object-cover" />
-                         ) : (
-                           <div className="w-full h-full bg-gray-200 flex items-center justify-center">?</div>
-                         )}
+                      <div
+                        className="h-10 w-10 relative rounded-full overflow-hidden border border-gray-200 cursor-pointer hover:ring-2 hover:ring-bcs-accent transition"
+                        onClick={() =>
+                          a.passport_url && setSelectedImage(a.passport_url)
+                        }
+                      >
+                        {a.passport_url ? (
+                          <Image
+                            src={a.passport_url}
+                            alt="passport"
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                            ?
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="p-3 font-medium">
-                      {a.first_name} {a.other_name ? `${a.other_name} ` : ""}{a.last_name}
-                      <div className="text-xs text-gray-500 font-normal">{a.email}</div>
+                      {a.first_name} {a.other_name ? `${a.other_name} ` : ""}
+                      {a.last_name}
+                      <div className="text-xs text-gray-500 font-normal">
+                        {a.email}
+                      </div>
                     </td>
-                    <td className="p-3 capitalize">{a.ensemble_arm?.replace('_', ' & ')}</td>
                     <td className="p-3 capitalize">
-                       {a.choir_part || a.orchestra_instrument || "-"}
+                      {a.ensemble_arm?.replace("_", " & ")}
+                    </td>
+                    <td className="p-3 capitalize">
+                      {a.choir_part || a.orchestra_instrument || "-"}
                     </td>
                     <td className="p-3">{a.join_year}</td>
                     <td className="p-3 capitalize">
-                      <span className={`px-2 py-1 rounded-full text-xs ${a.membership_status === 'full_member' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {a.membership_status?.replace('_', ' ')}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          a.membership_status === "full_member"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {a.membership_status?.replace("_", " ")}
                       </span>
                     </td>
                     <td className="p-3">
                       {a.has_medical_condition ? (
-                        <span className="text-red-600 font-medium cursor-help" title={a.medical_condition_details}>
+                        <span
+                          className="text-red-600 font-medium cursor-help"
+                          title={a.medical_condition_details}
+                        >
                           Yes
                         </span>
                       ) : (
@@ -231,7 +362,9 @@ export default function AttendeesSection({ event, categories }: Props) {
                     <td className="p-3">{a.buyer_name}</td>
                     <td className="p-3">{a.buyer_email}</td>
                     <td className="p-3">{a.category}</td>
-                    <td className="p-3">₦{a.amount_paid?.toLocaleString() || 0}</td>
+                    <td className="p-3">
+                      ₦{a.amount_paid?.toLocaleString() || 0}
+                    </td>
                   </tr>
                 ))}
               </tbody>
