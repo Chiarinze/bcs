@@ -1,22 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
 import PDFDocument from "pdfkit/js/pdfkit.standalone.js";
 import { Readable } from "stream";
 
-// interface Attendee {
-//   buyer_name: string;
-//   buyer_email: string;
-//   category: string;
-//   amount_paid: number;
-// }
-
-// interface EventRecord {
-//   title: string;
-// }
-
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
+    const auth = await requireAdmin();
+    if (auth instanceof NextResponse) return auth;
     const { searchParams } = new URL(req.url);
     const event_id = searchParams.get("event_id");
     const supabase = createServerSupabase();

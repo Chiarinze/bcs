@@ -4,14 +4,14 @@ import AdminEventDetails from "@/components/admin/AdminEventDetails";
 import { notFound } from "next/navigation";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminEventDetailsPage({ params }: Props) {
   const supabase = createServerSupabase();
-  const { slug } = params;
+  const { slug } = await params;
 
   // Fetch event
   const { data: event, error: eventError } = await supabase

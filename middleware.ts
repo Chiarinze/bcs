@@ -1,23 +1,57 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
+import { validateCsrf } from "@/lib/csrf";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
-export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
 
-  // protect /admin routes with simple password (you can replace this with Supabase Auth later)
-  if (pathname.startsWith("/admin")) {
-    const token = req.cookies.get("admin_auth")?.value;
-    const adminPassword = process.env.ADMIN_PASS;
+  // CSRF protection for all API state-changing requests
+  if (pathname.startsWith("/api/")) {
+    const csrfError = validateCsrf(request);
+    if (csrfError) return csrfError;
 
-    if (!token || token !== adminPassword) {
-      const loginUrl = new URL("/admin-login", req.url);
-      return NextResponse.redirect(loginUrl);
+    // Rate limit public API POST endpoints
+    if (request.method === "POST") {
+      const limited = rateLimit(getClientIp(request.headers), {
+        key: `api:${pathname}`,
+        limit: 15,
+        windowSeconds: 60,
+      });
+      if (limited) return limited;
     }
+
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // Rate limit auth pages (login, signup) — slows automated brute-force form submissions
+  const authPages = ["/admin-login", "/member-login", "/signup"];
+  const isAuthPage = authPages.some(
+    (page) => pathname === page || pathname.startsWith(`${page}/`)
+  );
+  if (isAuthPage && request.method === "POST") {
+    const limited = rateLimit(getClientIp(request.headers), {
+      key: "auth-page",
+      limit: 10,
+      windowSeconds: 300,
+    });
+    if (limited) return limited;
+  }
+
+  return await updateSession(request);
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: [
+    "/api/:path*",
+    "/admin/:path*",
+    "/admin-login/:path*",
+    "/admin-login",
+    "/member-login/:path*",
+    "/member-login",
+    "/signup",
+    "/profile-setup",
+    "/dashboard",
+    "/dashboard/:path*",
+  ],
 };

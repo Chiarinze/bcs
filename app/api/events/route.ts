@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
 import { revalidatePath } from "next/cache";
 
 export async function GET() {
   try {
     const { data, error } = await supabase
       .from("events")
-      .select("*")
+      .select("id, title, description, date, slug, location, is_paid, price, image_url, image_blur_data, is_internal, event_type, created_at")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -21,13 +22,15 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const supabase = createServerSupabase();
   const body = await req.json();
 
   const {
     categories,
     is_internal,
-    access_code,
     event_type,
     audition_slots,
     ...eventData
@@ -37,7 +40,6 @@ export async function POST(req: NextRequest) {
     ...eventData,
     event_type: event_type || "standard",
     is_internal: event_type === "internal" || is_internal || false,
-    access_code: event_type === "internal" || is_internal ? access_code : null,
   };
 
   const { data: event, error } = await supabase

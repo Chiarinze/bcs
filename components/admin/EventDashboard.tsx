@@ -28,10 +28,7 @@ export default function EventDashboard({ events }: { events: Event[] }) {
       const res = await fetch("/api/revalidate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: "/events",
-          adminKey: process.env.NEXT_PUBLIC_ADMIN_PASS,
-        }),
+        body: JSON.stringify({ path: "/events" }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.message || "Failed to revalidate");

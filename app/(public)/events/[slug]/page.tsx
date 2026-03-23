@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
@@ -10,7 +12,7 @@ import { FileText, FileIcon } from "lucide-react";
 import DownloadButton from "@/components/common/DownloadButton";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 interface EventDocument {
@@ -22,7 +24,7 @@ interface EventDocument {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = params;
+  const { slug } = await params;
 
   const { data: event } = await supabase
     .from("events")
@@ -65,7 +67,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function EventDetail({ params }: Props) {
-  const { slug } = params;
+  const { slug } = await params;
 
   const { data: event, error } = await supabase
     .from("events")
@@ -74,6 +76,24 @@ export default async function EventDetail({ params }: Props) {
     .single();
 
   if (error || !event) notFound();
+
+  // Internal events are only visible to authenticated members
+  if (event.is_internal) {
+    const cookieStore = await cookies();
+    const authClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+        },
+      }
+    );
+    const { data: { user } } = await authClient.auth.getUser();
+    if (!user) notFound();
+  }
 
   const [categoriesRes, docsRes] = await Promise.all([
     supabase
@@ -293,16 +313,15 @@ export default async function EventDetail({ params }: Props) {
           {event.is_internal && (
             <div className="border-t border-gray-100 pt-8 mt-8">
               <h2 className="text-2xl font-serif text-bcs-green mb-4">
-                Member Information
+                Member Registration
               </h2>
               <p className="text-gray-600 mb-4">
                 This event is restricted to members of the Benin Chorale &
-                Philharmonic. You will be required to provide an access code to
-                proceed with registration.
+                Philharmonic. Please proceed to register.
               </p>
               <Link href={`/events/${event.slug}/register`}>
                 <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
-                  Enter Access Code
+                  Register Now
                 </Button>
               </Link>
             </div>

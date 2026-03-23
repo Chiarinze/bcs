@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const { event_id, code, discount_percent } = await req.json();
 
   if (!event_id || !code || !discount_percent) {

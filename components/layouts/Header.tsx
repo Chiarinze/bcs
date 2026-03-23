@@ -1,17 +1,23 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Menu } from "lucide-react";
+import { X, Menu, Heart } from "lucide-react";
 import Image from "next/image";
 import { IMAGES } from "@/assets/images";
 import clsx from "clsx";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Button from "@/components/ui/Button";
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const pathname = usePathname();
+
+  // Only the landing page has a dark hero — all other pages need dark text immediately
+  const isHomePage = pathname === "/";
+  const useDarkText = !isHomePage || isScrolled;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 40);
@@ -31,6 +37,7 @@ export const Header = () => {
     { name: "About", href: "/about" },
     { name: "Performances", href: "/performances" },
     { name: "Events", href: "/events" },
+    { name: "Articles", href: "/articles" },
     { name: "Contact", href: "/contact" },
   ];
 
@@ -38,7 +45,7 @@ export const Header = () => {
     <header
       className={clsx(
         "fixed top-0 left-0 w-full z-50 transition-all duration-300 backdrop-blur-md",
-        isScrolled ? "bg-white/80 shadow-sm py-3" : "bg-transparent py-4"
+        useDarkText ? "bg-white/80 shadow-sm py-3" : "bg-transparent py-4"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
@@ -67,22 +74,44 @@ export const Header = () => {
               href={item.href}
               className={clsx(
                 "text-sm font-medium transition-colors",
-                isScrolled
+                useDarkText
                   ? "text-gray-800 hover:underline"
                   : "text-white hover:underline"
               )}
-              // className="text-sm text-gray-700 hover:text-bcs-accent font-medium transition-colors"
             >
               {item.name}
             </Link>
           ))}
-          <Button
-            variant="primary"
-            onClick={() => (window.location.href = "/contact")}
-            className="bg-bcs-green text-white hover:bg-bcs-accent"
+          {/* <Link
+            href="/member-login"
+            className={clsx(
+              "text-sm font-medium transition-colors",
+              useDarkText
+                ? "text-gray-800 hover:underline"
+                : "text-white hover:underline"
+            )}
           >
-            Book Us
-          </Button>
+            Members
+          </Link> */}
+          <Link
+            href="/donate"
+            className={clsx(
+              "text-sm font-medium transition-colors flex items-center gap-1",
+              useDarkText
+                ? "text-gray-800 hover:underline"
+                : "text-white hover:underline"
+            )}
+          >
+            <Heart className="w-3.5 h-3.5" /> Donate
+          </Link>
+          <Link href="/contact">
+            <Button
+              variant="primary"
+              className="bg-bcs-green text-white hover:bg-bcs-accent"
+            >
+              Book Us
+            </Button>
+          </Link>
         </nav>
 
         {/* Mobile Menu Button */}
@@ -91,7 +120,10 @@ export const Header = () => {
           onClick={toggleMenu}
           aria-expanded={isMenuOpen}
           aria-controls="mobile-menu"
-          className="text-gray-800 md:hidden p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-bcs-green"
+          className={clsx(
+            "md:hidden p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-bcs-green transition-colors",
+            useDarkText ? "text-gray-800" : "text-white"
+          )}
         >
           {isMenuOpen ? (
             <X className="w-6 h-6" />
@@ -122,13 +154,29 @@ export const Header = () => {
               {item.name}
             </Link>
           ))}
-          <Button
-            variant="primary"
-            className="w-full mt-3"
-            onClick={() => (window.location.href = "/contact")}
+          <Link
+            href="/member-login"
+            onClick={() => setIsMenuOpen(false)}
+            className="px-3 py-2 rounded-md text-gray-700 hover:bg-bcs-green/10 transition-colors"
           >
-            Book Us
-          </Button>
+            Members
+          </Link>
+          <Link
+            href="/donate"
+            onClick={() => setIsMenuOpen(false)}
+            className="px-3 py-2 rounded-md text-gray-700 hover:bg-bcs-green/10 transition-colors flex items-center gap-2"
+          >
+            <Heart className="w-4 h-4" /> Donate
+          </Link>
+          <Link
+            href="/contact"
+            onClick={() => setIsMenuOpen(false)}
+            className="w-full mt-3"
+          >
+            <Button variant="primary" className="w-full">
+              Book Us
+            </Button>
+          </Link>
         </nav>
       </div>
     </header>

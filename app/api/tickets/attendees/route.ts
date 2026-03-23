@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
+import { sanitizeSearch } from "@/lib/sanitize";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const { searchParams } = new URL(req.url);
   const event_id = searchParams.get("event_id");
   const page = Number(searchParams.get("page") || "1");
@@ -24,9 +29,10 @@ export async function GET(req: NextRequest) {
     .eq("event_id", event_id);
 
   // Apply search by name or email (case-insensitive)
-  if (search.trim() !== "") {
+  const sanitized = sanitizeSearch(search);
+  if (sanitized !== "") {
     query = query.or(
-      `buyer_name.ilike.%${search.trim()}%,buyer_email.ilike.%${search.trim()}%`
+      `buyer_name.ilike.%${sanitized}%,buyer_email.ilike.%${sanitized}%`
     );
   }
 

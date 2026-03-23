@@ -16,6 +16,7 @@ export default async function EventsPage() {
   const { data: events, error } = await supabase
     .from("events")
     .select("*")
+    .eq("is_internal", false)
     .order("date", { ascending: true });
 
   if (error) {

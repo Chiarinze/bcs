@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
 
-// ✅ Compatible with Next.js 15 dynamic params
-type ParamsType =
-  | { params: { id: string } }
-  | { params: Promise<{ id: string }> };
+type Props = { params: Promise<{ id: string }> };
 
-export async function PUT(req: NextRequest, context: ParamsType) {
-  const resolvedParams =
-    "then" in context.params
-      ? await context.params
-      : (context.params as { id: string });
-  const { id } = resolvedParams;
+export async function PUT(req: NextRequest, { params }: Props) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
+  const { id } = await params;
 
   try {
     const body = await req.json();
@@ -32,12 +29,11 @@ export async function PUT(req: NextRequest, context: ParamsType) {
   }
 }
 
-export async function DELETE(req: NextRequest, context: ParamsType) {
-  const resolvedParams =
-    "then" in context.params
-      ? await context.params
-      : (context.params as { id: string });
-  const { id } = resolvedParams;
+export async function DELETE(req: NextRequest, { params }: Props) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
+  const { id } = await params;
 
   try {
     const supabase = createServerSupabase();

@@ -8,11 +8,11 @@ import Button from "@/components/ui/Button";
 import { TicketCategory } from "@/types";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = params;
+  const { id } = await params;
   const { data: event } = await supabase
     .from("events")
     .select("*")
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function EventDetailPage({ params }: Props) {
-  const { id } = params;
+  const { id } = await params;
 
   const { data: event, error } = await supabase
     .from("events")

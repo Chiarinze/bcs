@@ -80,7 +80,6 @@ export default function EditEventForm({ event }: { event: any }) {
 
         // Internal Logic
         is_internal: isInternal,
-        access_code: isInternal ? formData.get("access_code") : null,
         is_paid: isInternal ? false : isPaid, // Reset paid if switching to internal
 
         image_url,
@@ -99,10 +98,7 @@ export default function EditEventForm({ event }: { event: any }) {
       await fetch("/api/revalidate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: "/events",
-          adminKey: process.env.NEXT_PUBLIC_ADMIN_PASS,
-        }),
+        body: JSON.stringify({ path: "/events" }),
       });
 
       router.push("/admin/events");
@@ -174,18 +170,6 @@ export default function EditEventForm({ event }: { event: any }) {
           )}
         </div>
 
-        {/* Access Code Input - Only if Internal */}
-        {isInternal && (
-          <div className="pt-2 animate-in fade-in slide-in-from-top-2">
-            <TextInput
-              name="access_code"
-              label="Access Code"
-              defaultValue={event.access_code || ""}
-              placeholder="e.g., BCS-MEM-2024"
-              required={isInternal}
-            />
-          </div>
-        )}
       </div>
 
       {/* Ticket Categories - Only show if NOT Internal */}

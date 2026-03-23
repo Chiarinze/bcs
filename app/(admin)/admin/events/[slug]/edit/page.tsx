@@ -5,12 +5,12 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 export const dynamic = "force-dynamic";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export default async function EditEventPage({ params }: Props) {
   const supabase = createServerSupabase();
-  const { slug } = params;
+  const { slug } = await params;
 
   const { data: event, error } = await supabase
     .from("events")

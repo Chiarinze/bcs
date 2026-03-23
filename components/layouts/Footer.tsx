@@ -41,6 +41,8 @@ export const Footer = () => {
               { label: "About", href: "/about" },
               { label: "Performances", href: "/performances" },
               { label: "Events", href: "/events" },
+              { label: "Articles", href: "/articles" },
+              { label: "Donate", href: "/donate" },
               { label: "Contact", href: "/contact" },
             ].map((link) => (
               <li key={link.label}>

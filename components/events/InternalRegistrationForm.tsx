@@ -2,24 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 import { TextInput, FileInput } from "@/components/ui/FormInputs";
 import Button from "@/components/ui/Button";
 
 interface Props {
   eventId: string;
   eventSlug: string;
-  // We pass the real code from the server component to validate against safely
-  // Or we can validate via server action. For simplicity, we'll validate via API lookup or prop if passed securely.
-  // Better security: Validate code via server action/API.
 }
 
 export default function InternalRegistrationForm({ eventId }: Props) {
   const router = useRouter();
 
-  // Stages: 'gate' | 'form' | 'success'
-  const [stage, setStage] = useState<"gate" | "form" | "success">("gate");
-  const [accessCodeInput, setAccessCodeInput] = useState("");
+  const [stage, setStage] = useState<"form" | "success">("form");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,28 +22,7 @@ export default function InternalRegistrationForm({ eventId }: Props) {
   const [ensembleArm, setEnsembleArm] = useState("");
   const [hasMedical, setHasMedical] = useState(false);
 
-  // 1. Verify Access Code
-  async function verifyCode(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    // We verify against the DB to ensure code matches THIS event
-    const { data } = await supabase
-      .from("events")
-      .select("access_code")
-      .eq("id", eventId)
-      .single();
-
-    if (data && data.access_code === accessCodeInput) {
-      setStage("form");
-    } else {
-      setError("Incorrect access code. Please try again.");
-    }
-    setLoading(false);
-  }
-
-  // 2. Submit Registration
+  // Submit Registration
   async function handleRegistration(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -67,6 +41,8 @@ export default function InternalRegistrationForm({ eventId }: Props) {
       // A. Upload Passport
       const fileExt = passportFile.name.split(".").pop();
       const fileName = `${eventId}/${Date.now()}.${fileExt}`;
+
+      const supabase = createClient();
 
       const { error: uploadError } = await supabase.storage
         .from("passports")
@@ -109,34 +85,6 @@ export default function InternalRegistrationForm({ eventId }: Props) {
     } finally {
       setLoading(false);
     }
-  }
-
-  // --- RENDER: GATE ---
-  if (stage === "gate") {
-    return (
-      <div className="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100 text-center">
-        <h3 className="text-xl font-serif text-bcs-green mb-2">
-          Member Access
-        </h3>
-        <p className="text-gray-600 mb-6 text-sm">
-          This is an internal event. Please enter the access code provided to
-          the ensemble.
-        </p>
-        <form onSubmit={verifyCode} className="space-y-4">
-          <TextInput
-            value={accessCodeInput}
-            onChange={(e) => setAccessCodeInput(e.target.value)}
-            placeholder="Enter Code"
-            className="text-center text-lg tracking-widest"
-            required
-          />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <Button loading={loading} className="w-full bg-bcs-green">
-            Proceed to Registration
-          </Button>
-        </form>
-      </div>
-    );
   }
 
   // --- RENDER: SUCCESS ---

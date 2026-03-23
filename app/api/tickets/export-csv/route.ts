@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 export const dynamic = "force-dynamic"; // always fetch fresh data
 
@@ -13,6 +14,9 @@ export const dynamic = "force-dynamic"; // always fetch fresh data
 // }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const { searchParams } = new URL(req.url);
   const event_id = searchParams.get("event_id");
   const supabase = createServerSupabase();

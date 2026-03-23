@@ -1,7 +1,11 @@
 import { NextResponse, NextRequest } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 export async function POST(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const supabase = createServerSupabase();
   const { id, is_active } = await req.json();
 

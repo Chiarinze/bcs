@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
+import { sanitizeSearch } from "@/lib/sanitize";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const supabase = createServerSupabase();
   const { searchParams } = new URL(req.url);
   const event_id = searchParams.get("event_id");
-  const search = searchParams.get("search");
+  const rawSearch = searchParams.get("search");
 
   if (!event_id) {
     return NextResponse.json({ error: "Event ID is required" }, { status: 400 });
@@ -17,6 +22,7 @@ export async function GET(req: NextRequest) {
     .eq("event_id", event_id)
     .order("created_at", { ascending: false });
 
+  const search = rawSearch ? sanitizeSearch(rawSearch) : "";
   if (search) {
     query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
   }

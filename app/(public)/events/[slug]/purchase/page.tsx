@@ -3,7 +3,7 @@ import { createServerSupabase } from "@/lib/supabaseServer";
 import { notFound } from "next/navigation";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export const metadata = {
@@ -13,7 +13,7 @@ export const metadata = {
 
 export default async function PurchasePage({ params }: Props) {
   const supabase = createServerSupabase();
-  const { slug } = params;
+  const { slug } = await params;
 
   const { data: event, error: eventError } = await supabase
     .from("events")

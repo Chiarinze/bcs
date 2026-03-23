@@ -1,0 +1,167 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { createServerSupabase } from "@/lib/supabaseServer";
+import Link from "next/link";
+import { FileText, Plus, AlertCircle, Clock, CheckCircle, Edit } from "lucide-react";
+import type { Article } from "@/types";
+import Image from "next/image";
+import { IMAGES } from "@/assets/images";
+import LogoutButton from "@/components/ui/LogoutButton";
+
+export const dynamic = "force-dynamic";
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    draft: "bg-gray-100 text-gray-600",
+    pending_review: "bg-yellow-100 text-yellow-700",
+    published: "bg-green-100 text-green-700",
+  };
+  const labels: Record<string, string> = {
+    draft: "Draft",
+    pending_review: "Pending Review",
+    published: "Published",
+  };
+  return (
+    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status] || styles.draft}`}>
+      {labels[status] || status}
+    </span>
+  );
+}
+
+export default async function MemberArticlesPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/member-login");
+
+  const serverSupabase = createServerSupabase();
+
+  const { data } = await serverSupabase
+    .from("articles")
+    .select("*")
+    .eq("author_id", user.id)
+    .order("updated_at", { ascending: false });
+
+  const articles = (data || []) as Article[];
+
+  return (
+    <div className="min-h-screen bg-[#F9F9F7]">
+      {/* Header */}
+      <header className="sticky top-0 z-20 bg-white shadow-sm border-b border-gray-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow">
+              <Image src={IMAGES.logo} alt="BCS logo" width={40} height={40} />
+            </div>
+            <h1 className="text-lg font-semibold text-bcs-green">My Articles</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="text-sm text-gray-500 hover:text-bcs-green transition"
+            >
+              Dashboard
+            </Link>
+            <LogoutButton />
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+        {/* Actions */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <FileText className="w-6 h-6 text-bcs-green" />
+            <h2 className="text-xl font-semibold text-bcs-green">
+              Your Articles
+            </h2>
+          </div>
+          <Link
+            href="/dashboard/articles/new"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-bcs-green text-white text-sm font-medium hover:bg-bcs-green/90 transition"
+          >
+            <Plus className="w-4 h-4" /> New Article
+          </Link>
+        </div>
+
+        {/* Articles List */}
+        {articles.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+            <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-gray-500 mb-2">
+              You haven&apos;t written any articles yet.
+            </p>
+            <Link
+              href="/dashboard/articles/new"
+              className="text-sm text-bcs-accent hover:underline"
+            >
+              Write your first article
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {articles.map((article) => (
+              <div
+                key={article.id}
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {article.title}
+                      </h3>
+                      <StatusBadge status={article.status} />
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(article.updated_at).toLocaleDateString(
+                          "en-NG",
+                          { year: "numeric", month: "short", day: "numeric" }
+                        )}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-gray-50 text-gray-500">
+                        {article.category}
+                      </span>
+                    </div>
+
+                    {/* Rejection Note */}
+                    {article.rejection_note && (
+                      <div className="flex items-start gap-2 mt-2 p-3 bg-red-50 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-red-600">
+                          {article.rejection_note}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {article.status === "published" ? (
+                      <Link
+                        href={`/articles/${article.slug}`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-bcs-green border border-bcs-green rounded-full hover:bg-bcs-green hover:text-white transition"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" /> View
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/dashboard/articles/${article.slug}/edit`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-bcs-accent border border-bcs-accent rounded-full hover:bg-bcs-accent hover:text-white transition"
+                      >
+                        <Edit className="w-3.5 h-3.5" /> Edit
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

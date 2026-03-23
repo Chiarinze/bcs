@@ -14,17 +14,10 @@ export default function EventOverview({ event, totalTickets }: Props) {
         </p>
       </div>
       
-      {event.is_internal ? (
-        <div>
-           <p className="text-sm text-gray-500">Access Code</p>
-           <code className="font-mono bg-gray-100 px-2 py-0.5 rounded text-bcs-primary">{event.access_code}</code>
-        </div>
-      ) : (
-        <div>
-          <p className="text-sm text-gray-500">Total Registrations</p>
-          <p className="font-semibold">{totalTickets}</p>
-        </div>
-      )}
+      <div>
+        <p className="text-sm text-gray-500">Total Registrations</p>
+        <p className="font-semibold">{totalTickets}</p>
+      </div>
 
       <div>
         <p className="text-sm text-gray-500">Date</p>

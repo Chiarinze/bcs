@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(getClientIp(req.headers), {
+    key: "ticket-register",
+    limit: 10,
+    windowSeconds: 60,
+  });
+  if (limited) return limited;
+
   try {
     const {
       reference,

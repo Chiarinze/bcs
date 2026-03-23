@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseClient";
+import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
+import { revalidatePath } from "next/cache";
 
-type ParamsType =
-  | { params: { slug: string } }
-  | { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ slug: string }> };
 
-export async function PUT(req: NextRequest, context: ParamsType) {
-  const resolvedParams =
-    "then" in context.params
-      ? await context.params
-      : (context.params as { slug: string });
+export async function PUT(req: NextRequest, { params }: Props) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
 
-  const { slug } = resolvedParams;
+  const { slug } = await params;
+  const supabase = createServerSupabase();
 
   try {
     const body = await req.json();
@@ -47,14 +46,8 @@ export async function PUT(req: NextRequest, context: ParamsType) {
     }
 
     // ✅ 3. Auto revalidate events page
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/revalidate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        path: "/events",
-        adminKey: process.env.NEXT_PUBLIC_ADMIN_PASS,
-      }),
-    }).catch(() => null);
+    revalidatePath("/events");
+    revalidatePath("/events/[slug]", "page");
 
     return NextResponse.json(
       { success: true, message: "Event updated successfully" },
@@ -67,13 +60,12 @@ export async function PUT(req: NextRequest, context: ParamsType) {
   }
 }
 
-export async function DELETE(_req: NextRequest, context: ParamsType) {
-  const resolvedParams =
-    "then" in context.params
-      ? await context.params
-      : (context.params as { slug: string });
+export async function DELETE(_req: NextRequest, { params }: Props) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
 
-  const { slug } = resolvedParams;
+  const { slug } = await params;
+  const supabase = createServerSupabase();
 
   try {
     // 1. Find event ID and associated documents first
@@ -119,14 +111,8 @@ export async function DELETE(_req: NextRequest, context: ParamsType) {
     if (deleteError) throw deleteError;
 
     // Revalidate public events list
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/revalidate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        path: "/events",
-        adminKey: process.env.NEXT_PUBLIC_ADMIN_PASS,
-      }),
-    }).catch(() => null);
+    revalidatePath("/events");
+    revalidatePath("/events/[slug]", "page");
 
     return NextResponse.json(
       { success: true, message: "Event deleted successfully" },

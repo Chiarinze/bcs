@@ -5,14 +5,6 @@ import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { Event, TicketCategory } from "@/types";
 
-declare global {
-  interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    PaystackPop?: any;
-    paystackLoaded?: boolean;
-  }
-}
-
 interface Props {
   event: Event;
   categories: TicketCategory[];

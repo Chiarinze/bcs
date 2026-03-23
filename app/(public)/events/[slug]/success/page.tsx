@@ -5,8 +5,8 @@ import Button from "@/components/ui/Button";
 import { CheckCircle } from "lucide-react";
 
 interface Props {
-  params: { slug: string };
-  searchParams: { ref?: string };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ ref?: string }>;
 }
 
 export const metadata = {
@@ -15,8 +15,8 @@ export const metadata = {
 };
 
 export default async function SuccessPage({ params, searchParams }: Props) {
-  const { slug } = params;
-  const reference = searchParams.ref;
+  const { slug } = await params;
+  const { ref: reference } = await searchParams;
 
   const supabase = createServerSupabase();
 

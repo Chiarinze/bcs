@@ -1,6 +1,7 @@
 // app/api/tickets/route.ts
 import { NextResponse, NextRequest } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 interface CreateTicketBody {
   event_id: string;
@@ -123,6 +124,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const supabase = createServerSupabase();
   const { data, error } = await supabase
     .from("tickets")

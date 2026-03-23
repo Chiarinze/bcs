@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -29,6 +30,9 @@ export async function GET(req: NextRequest, { params }: Props) {
 }
 
 export async function POST(req: NextRequest, { params }: Props) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const supabase = createServerSupabase();
   // Technically you might not need slug here since you pass event_id in body,
   // but we await it to keep the Route Handler signature valid.
@@ -48,6 +52,9 @@ export async function POST(req: NextRequest, { params }: Props) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const supabase = createServerSupabase();
   const { searchParams } = new URL(req.url);
   const docId = searchParams.get("id");

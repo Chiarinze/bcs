@@ -63,8 +63,6 @@ export default function NewEventForm() {
         location: formData.get("location"),
         event_type: eventType,
         is_internal: eventType === "internal",
-        access_code:
-          eventType === "internal" ? formData.get("access_code") : null,
         is_paid: eventType === "standard" ? isPaid : false,
         image_url,
         image_blur_data,
@@ -130,11 +128,6 @@ export default function NewEventForm() {
           ))}
         </div>
 
-        {eventType === "internal" && (
-          <div className="pt-2 animate-in fade-in slide-in-from-top-2">
-            <TextInput name="access_code" label="Access Code" required />
-          </div>
-        )}
 
         {eventType === "standard" && (
           <label className="flex items-center gap-2 cursor-pointer pt-2">

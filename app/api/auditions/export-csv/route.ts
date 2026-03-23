@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { requireAdmin } from "@/lib/requireAdmin";
 import { AuditionRegistration } from "@/types";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
+
   const supabase = createServerSupabase();
   const { searchParams } = new URL(req.url);
   const eventId = searchParams.get("event_id");

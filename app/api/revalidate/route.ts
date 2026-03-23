@@ -1,21 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/requireAdmin";
 
-export async function POST(req: NextRequest) {
-  const { path, adminKey } = await req.json();
-
-  // Basic security check using your env variable
-  if (adminKey !== process.env.NEXT_PUBLIC_ADMIN_PASS) {
-    return NextResponse.json({ message: "Invalid token" }, { status: 401 });
-  }
+export async function POST(req: Request) {
+  const auth = await requireAdmin();
+  if (auth instanceof NextResponse) return auth;
 
   try {
+    const { path } = await req.json();
+
     if (path) {
-      // Purge the cache for the specific path (e.g., "/events")
       revalidatePath(path);
-      // Also revalidate the dynamic event page to be safe
       revalidatePath("/events/[slug]", "page");
-      
+
       return NextResponse.json({ revalidated: true, now: Date.now() });
     }
 

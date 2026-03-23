@@ -1,17 +1,19 @@
 import { Metadata } from "next";
 import { supabase } from "@/lib/supabaseClient";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import InternalRegistrationForm from "@/components/events/InternalRegistrationForm";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import AuditionRegistrationForm from "@/components/events/AuditionRegistrationForm";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = params;
+  const { slug } = await params;
 
   const { data: event } = await supabase
     .from("events")
@@ -52,7 +54,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function EventRegisterPage({ params }: Props) {
-  const { slug } = params;
+  const { slug } = await params;
 
   // Fetch event details
   const { data: event } = await supabase
@@ -62,6 +64,26 @@ export default async function EventRegisterPage({ params }: Props) {
     .single();
 
   if (!event) notFound();
+
+  // Internal events require member authentication
+  if (event.is_internal || event.event_type === 'internal') {
+    const cookieStore = await cookies();
+    const authClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+        },
+      }
+    );
+    const { data: { user } } = await authClient.auth.getUser();
+    if (!user) {
+      redirect(`/member-login`);
+    }
+  }
 
   // If it's a standard public event, redirect to purchase/tickets
   if (event.event_type === 'standard' && !event.is_internal) {
