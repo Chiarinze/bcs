@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { requireAdmin } from "@/lib/requireAdmin";
+import { sendApprovalEmail } from "@/lib/email";
 import type { MembershipStatus } from "@/types";
 
 interface VerifyBody {
@@ -32,6 +33,13 @@ export async function POST(req: NextRequest) {
       updateData.membership_status = membership_status;
     }
 
+    // Fetch the member's profile before updating (need email and name)
+    const { data: member } = await supabase
+      .from("profiles")
+      .select("email, first_name")
+      .eq("id", member_id)
+      .single();
+
     const { error } = await supabase
       .from("profiles")
       .update(updateData)
@@ -39,6 +47,17 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Send approval email (non-blocking — don't fail the request if email fails)
+    if (member?.email) {
+      sendApprovalEmail({
+        to: member.email,
+        firstName: member.first_name || "Member",
+        membershipStatus: membership_status || "probationary",
+      }).catch((err) => {
+        console.error("Approval email failed:", err);
+      });
     }
 
     return NextResponse.json({ success: true, message: "Member approved" });
