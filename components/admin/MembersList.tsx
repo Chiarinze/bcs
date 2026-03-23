@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { CheckCircle, XCircle } from "lucide-react";
@@ -18,6 +18,10 @@ export default function MembersList({
   const router = useRouter();
   const [members, setMembers] = useState<Profile[]>(initialMembers);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMembers(initialMembers);
+  }, [initialMembers]);
 
   function handleFilterChange(f: FilterType) {
     router.push(`/admin/members?filter=${f}`);
