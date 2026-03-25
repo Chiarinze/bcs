@@ -92,7 +92,7 @@ export default function SignupPage() {
           </h2>
           <p className="text-sm text-gray-600 leading-relaxed">
             Your account has been created successfully. An administrator will
-            review and verify your account. You will receive an email at the
+            review and verify your account within the next 24 hours. You will receive an email at the
             address you registered with, <strong>{email}</strong>, once your
             account is approved.
           </p>
