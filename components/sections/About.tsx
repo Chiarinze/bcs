@@ -199,7 +199,7 @@ export default function About() {
             <h2 className="text-3xl md:text-4xl font-serif text-bcs-green mb-10 text-center">
               Our Board of Directors
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
               {BoardOfDirectors.map((member) => (
                 <div
                   key={member.id}
@@ -234,7 +234,7 @@ export default function About() {
             <h2 className="text-3xl md:text-4xl font-serif text-bcs-green mb-10 text-center">
               Our Management & Part Leaders
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
               {Management.map((m) => (
                 <div
                   key={m.id}
@@ -245,7 +245,7 @@ export default function About() {
               ))}
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
               {PartLeaders.map((leader) => (
                 <div
                   key={leader.id}

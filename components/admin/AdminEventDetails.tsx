@@ -34,8 +34,8 @@ export default function AdminEventDetails({ event, totalTickets, categories, cod
   return (
     <div className="space-y-10">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-serif text-bcs-green">{event.title}</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-serif text-bcs-green">{event.title}</h1>
         <div className="flex gap-3">
           <Button
             onClick={() => router.push(`/admin/events/${event.slug}/edit`)}

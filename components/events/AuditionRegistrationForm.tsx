@@ -121,7 +121,7 @@ export default function AuditionRegistrationForm({ eventId }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-2xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6"
+      className="max-w-2xl mx-auto bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6"
     >
       <div className="grid md:grid-cols-2 gap-4">
         <TextInput name="first_name" label="First Name" required />

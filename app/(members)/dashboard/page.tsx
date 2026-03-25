@@ -1,12 +1,14 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
-import Image from "next/image";
-import { IMAGES } from "@/assets/images";
-import { User, FileText, ChevronRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import LogoutButton from "@/components/ui/LogoutButton";
-import type { Profile } from "@/types";
+import {
+  Calendar,
+  FileText,
+  Clock,
+  MapPin,
+  Megaphone,
+  ChevronRight,
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -16,148 +18,256 @@ export default async function MemberDashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/member-login");
-  }
-
   const serverSupabase = createServerSupabase();
-  const { data } = await serverSupabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
 
-  const profile = data as Profile | null;
+  // Fetch internal events (upcoming)
+  const { data: eventsData } = await serverSupabase
+    .from("events")
+    .select("id, title, slug, date, location, event_type, image_url")
+    .eq("is_internal", true)
+    .gte("date", new Date().toISOString())
+    .order("date", { ascending: true })
+    .limit(5);
 
-  if (!profile || !profile.profile_completed) {
-    redirect("/profile-setup");
-  }
+  const internalEvents = eventsData || [];
+
+  // Fetch member's recent articles
+  const { data: articlesData } = await serverSupabase
+    .from("articles")
+    .select("id, title, slug, status, updated_at, category")
+    .eq("author_id", user!.id)
+    .order("updated_at", { ascending: false })
+    .limit(3);
+
+  const recentArticles = articlesData || [];
+
+  // Fetch published announcements (articles in "Announcements" category)
+  const { data: announcementsData } = await serverSupabase
+    .from("articles")
+    .select("id, title, slug, excerpt, published_at, cover_image_url")
+    .eq("status", "published")
+    .eq("category", "Announcements")
+    .order("published_at", { ascending: false })
+    .limit(3);
+
+  const announcements = announcementsData || [];
 
   return (
-    <div className="min-h-screen bg-[#F9F9F7]">
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-white shadow">
-              <Image
-                src={IMAGES.logo}
-                alt="BCS logo"
-                width={40}
-                height={40}
-              />
-            </div>
-            <h1 className="text-lg font-semibold text-bcs-green">
-              Member Dashboard
-            </h1>
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-serif text-bcs-green">Dashboard</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Welcome back. Here&apos;s what&apos;s happening.
+        </p>
+      </div>
+
+      {/* Announcements */}
+      {announcements.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Megaphone className="w-5 h-5 text-amber-500" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              Announcements
+            </h2>
           </div>
-
-          <LogoutButton />
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-        {/* Welcome Card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-6">
-          <div className="flex items-center gap-5">
-            {profile.photo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.photo_url}
-                alt="Profile"
-                className="w-16 h-16 rounded-full object-cover border-2 border-bcs-green"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-bcs-green/10 flex items-center justify-center">
-                <User className="w-8 h-8 text-bcs-green" />
-              </div>
+          <div className="space-y-3">
+            {announcements.map(
+              (a: {
+                id: string;
+                title: string;
+                slug: string;
+                excerpt: string | null;
+                published_at: string | null;
+              }) => (
+                <Link
+                  key={a.id}
+                  href={`/articles/${a.slug}`}
+                  className="block bg-amber-50 border border-amber-100 rounded-2xl p-4 hover:bg-amber-100/60 transition group"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-medium text-gray-900 group-hover:text-bcs-green transition truncate">
+                        {a.title}
+                      </h3>
+                      {a.excerpt && (
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                          {a.excerpt}
+                        </p>
+                      )}
+                      {a.published_at && (
+                        <p className="text-xs text-gray-400 mt-2">
+                          {new Date(a.published_at).toLocaleDateString(
+                            "en-NG",
+                            { year: "numeric", month: "short", day: "numeric" }
+                          )}
+                        </p>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
+                  </div>
+                </Link>
+              )
             )}
-            <div>
-              <h2 className="text-xl font-serif text-bcs-green">
-                Welcome, {profile.first_name}!
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {profile.membership_status === "full_member"
-                  ? "Full Member"
-                  : "Probationary Member"}{" "}
-                &middot;{" "}
-                {profile.ensemble_arm === "choir"
-                  ? `Choir — ${profile.choir_part}`
-                  : `Orchestra — ${profile.orchestra_instrument}`}
-              </p>
-            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Internal Events */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-bcs-green" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              Upcoming Events
+            </h2>
           </div>
         </div>
-
-        {/* Quick Links */}
-        <Link
-          href="/dashboard/articles"
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6 flex items-center justify-between group hover-lift"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-bcs-green/10 flex items-center justify-center">
-              <FileText className="w-6 h-6 text-bcs-green" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">My Articles</h3>
-              <p className="text-sm text-gray-500">Write and manage your articles</p>
-            </div>
+        {internalEvents.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+            <Calendar className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+            <p className="text-gray-500 text-sm">
+              No upcoming events at the moment.
+            </p>
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-bcs-green transition" />
-        </Link>
-
-        {/* Profile Summary */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Your Profile
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-400">Full Name</span>
-              <p className="text-gray-900 font-medium">
-                {profile.first_name} {profile.other_name ? `${profile.other_name} ` : ""}{profile.last_name}
-              </p>
-            </div>
-            <div>
-              <span className="text-gray-400">Email</span>
-              <p className="text-gray-900 font-medium">{profile.email}</p>
-            </div>
-            <div>
-              <span className="text-gray-400">Date of Birth</span>
-              <p className="text-gray-900 font-medium">
-                {profile.date_of_birth
-                  ? new Date(profile.date_of_birth).toLocaleDateString("en-NG", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : "—"}
-              </p>
-            </div>
-            <div>
-              <span className="text-gray-400">Address</span>
-              <p className="text-gray-900 font-medium">
-                {profile.physical_address || "—"}
-              </p>
-            </div>
-            <div>
-              <span className="text-gray-400">Ensemble Arm</span>
-              <p className="text-gray-900 font-medium capitalize">
-                {profile.ensemble_arm || "—"}
-              </p>
-            </div>
-            <div>
-              <span className="text-gray-400">
-                {profile.ensemble_arm === "choir" ? "Part" : "Instrument"}
-              </span>
-              <p className="text-gray-900 font-medium">
-                {profile.choir_part || profile.orchestra_instrument || "—"}
-              </p>
-            </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {internalEvents.map(
+              (event: {
+                id: string;
+                title: string;
+                slug: string;
+                date: string;
+                location?: string;
+                event_type?: string;
+              }) => (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.slug}`}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition group"
+                >
+                  <h3 className="font-semibold text-gray-900 group-hover:text-bcs-green transition truncate">
+                    {event.title}
+                  </h3>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(event.date).toLocaleDateString("en-NG", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </span>
+                    {event.location && (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {event.location}
+                      </span>
+                    )}
+                  </div>
+                  {event.event_type && (
+                    <span className="inline-block mt-2 px-2 py-0.5 rounded-full bg-bcs-green/10 text-bcs-green text-[10px] font-medium uppercase">
+                      {event.event_type}
+                    </span>
+                  )}
+                </Link>
+              )
+            )}
           </div>
+        )}
+      </section>
+
+      {/* Recent Articles */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-bcs-green" />
+            <h2 className="text-lg font-semibold text-gray-900">
+              Your Recent Articles
+            </h2>
+          </div>
+          <Link
+            href="/dashboard/articles"
+            className="text-sm text-bcs-accent hover:underline"
+          >
+            View all
+          </Link>
         </div>
-      </main>
+        {recentArticles.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+            <FileText className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+            <p className="text-gray-500 text-sm mb-2">
+              You haven&apos;t written any articles yet.
+            </p>
+            <Link
+              href="/dashboard/articles/new"
+              className="text-sm text-bcs-accent hover:underline"
+            >
+              Write your first article
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentArticles.map(
+              (article: {
+                id: string;
+                title: string;
+                slug: string;
+                status: string;
+                updated_at: string;
+                category: string;
+              }) => {
+                const statusStyles: Record<string, string> = {
+                  draft: "bg-gray-100 text-gray-600",
+                  pending_review: "bg-yellow-100 text-yellow-700",
+                  published: "bg-green-100 text-green-700",
+                };
+                const statusLabels: Record<string, string> = {
+                  draft: "Draft",
+                  pending_review: "Pending Review",
+                  published: "Published",
+                };
+                return (
+                  <Link
+                    key={article.id}
+                    href={
+                      article.status === "published"
+                        ? `/articles/${article.slug}`
+                        : `/dashboard/articles/${article.slug}/edit`
+                    }
+                    className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition group"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-medium text-gray-900 group-hover:text-bcs-green transition truncate">
+                        {article.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                        <span>
+                          {new Date(article.updated_at).toLocaleDateString(
+                            "en-NG",
+                            { month: "short", day: "numeric" }
+                          )}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-500">
+                          {article.category}
+                        </span>
+                      </div>
+                    </div>
+                    <span
+                      className={`ml-3 px-2.5 py-0.5 rounded-full text-[11px] font-medium flex-shrink-0 ${
+                        statusStyles[article.status] || statusStyles.draft
+                      }`}
+                    >
+                      {statusLabels[article.status] || article.status}
+                    </span>
+                  </Link>
+                );
+              }
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

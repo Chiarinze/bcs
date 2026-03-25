@@ -19,6 +19,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [membershipStatus, setMembershipStatus] =
     useState<MembershipStatus>("probationary");
+  const [yearInducted, setYearInducted] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,6 +53,7 @@ export default function SignupPage() {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           membership_status: membershipStatus,
+          year_inducted: membershipStatus === "full_member" ? parseInt(yearInducted) : null,
         },
       },
     });
@@ -84,7 +86,7 @@ export default function SignupPage() {
           </div>
         </div>
 
-        <div className="w-full max-w-sm bg-white shadow-md rounded-2xl p-8 border border-gray-100 text-center">
+        <div className="w-full max-w-sm bg-white shadow-md rounded-2xl p-6 sm:p-8 border border-gray-100 text-center">
           <h2 className="text-xl font-serif text-bcs-green mb-3">
             Account Created
           </h2>
@@ -131,7 +133,7 @@ export default function SignupPage() {
 
       <form
         onSubmit={handleSignup}
-        className="w-full max-w-sm bg-white shadow-md rounded-2xl p-8 border border-gray-100"
+        className="w-full max-w-sm bg-white shadow-md rounded-2xl p-6 sm:p-8 border border-gray-100"
       >
         <div className="space-y-5">
           <TextInput
@@ -185,6 +187,31 @@ export default function SignupPage() {
               <option value="probationary">Probationary Member</option>
             </select>
           </div>
+
+          {membershipStatus === "full_member" && (
+            <div className="space-y-1">
+              <label
+                htmlFor="year_inducted"
+                className="text-sm font-medium text-bcs-green"
+              >
+                What year were you inducted?
+              </label>
+              <input
+                id="year_inducted"
+                type="number"
+                min="2012"
+                max={new Date().getFullYear()}
+                value={yearInducted}
+                onChange={(e) => setYearInducted(e.target.value)}
+                placeholder="e.g. 2015"
+                required
+                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-bcs-accent focus:border-bcs-accent outline-none transition"
+              />
+              <p className="text-xs text-amber-600 mt-1">
+                Please ensure this year is correct — it will be used to generate your membership ID.
+              </p>
+            </div>
+          )}
 
           <div className="relative">
             <TextInput

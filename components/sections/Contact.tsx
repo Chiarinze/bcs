@@ -49,7 +49,7 @@ export default function Contact() {
 
           {/* CONTACT OPTIONS */}
           <div
-            className="grid md:grid-cols-4 gap-8 justify-center items-center mb-20"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 justify-center items-center mb-20"
             data-reveal
           >
             {contactOptions.map((contact) => (

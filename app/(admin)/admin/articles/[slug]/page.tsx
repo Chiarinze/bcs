@@ -113,11 +113,11 @@ export default function AdminArticleDetailPage() {
     <AdminLayout showBack>
       <div className="space-y-6">
         {/* Article Meta */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-serif text-gray-900">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h2 className="text-lg sm:text-xl font-serif text-gray-900">
                   {article.title}
                 </h2>
                 <span
@@ -158,9 +158,9 @@ export default function AdminArticleDetailPage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Actions</h3>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {(article.status === "pending_review" ||
               article.status === "draft") && (
               <Button
@@ -273,7 +273,7 @@ export default function AdminArticleDetailPage() {
         )}
 
         {/* Article Content Preview */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-8">
           <h3 className="text-sm font-semibold text-gray-700 mb-4 pb-4 border-b border-gray-100">
             Content Preview
           </h3>

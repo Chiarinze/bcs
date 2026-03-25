@@ -7,7 +7,7 @@ import Link from "next/link";
 export const Footer = () => {
   return (
     <footer className="bg-[#F9F9F7] border-t border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 py-16 grid md:grid-cols-3 gap-12">
+      <div className="max-w-7xl mx-auto px-4 py-12 sm:py-16 grid sm:grid-cols-2 md:grid-cols-3 gap-10 sm:gap-12">
         {/* Brand / Logo */}
         <div>
           <div className="flex items-center gap-3 mb-4">
@@ -67,7 +67,7 @@ export const Footer = () => {
               <Mail className="w-4 h-4 text-bcs-accent" />
               <a
                 href="mailto:info@beninchoraleandphilharmonic.com"
-                className="hover:underline"
+                className="hover:underline break-all"
               >
                 info@beninchoraleandphilharmonic.com
               </a>

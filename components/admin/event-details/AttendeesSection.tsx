@@ -96,7 +96,7 @@ export default function AttendeesSection({ event, categories }: Props) {
   }
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
       {/* --- IMAGE MODAL OVERLAY --- */}
       {selectedImage && (
         <div
@@ -347,7 +347,7 @@ export default function AttendeesSection({ event, categories }: Props) {
             </table>
           ) : (
             /* --- PUBLIC EVENT TABLE --- */
-            <table className="w-full text-sm border-t">
+            <table className="w-full text-sm border-t min-w-[500px]">
               <thead className="bg-gray-50 text-left">
                 <tr>
                   <th className="p-3">Name</th>

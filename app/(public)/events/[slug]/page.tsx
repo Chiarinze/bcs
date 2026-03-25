@@ -118,7 +118,7 @@ export default async function EventDetail({ params }: Props) {
       <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm overflow-hidden">
         {/* Hero Image */}
         {event.image_url && (
-          <div className="relative w-full h-80 md:h-[450px]">
+          <div className="relative w-full h-56 sm:h-80 md:h-[450px]">
             <EventImage
               src={event.image_url}
               alt={event.title}
@@ -128,10 +128,10 @@ export default async function EventDetail({ params }: Props) {
         )}
 
         {/* Event Content */}
-        <div className="p-8 md:p-10">
+        <div className="p-5 sm:p-8 md:p-10">
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-8">
             <div>
-              <h1 className="text-3xl md:text-4xl font-serif mb-3 text-bcs-green">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif mb-3 text-bcs-green">
                 {event.title}
               </h1>
               <p className="text-gray-600 max-w-2xl">{event.description}</p>

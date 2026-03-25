@@ -1,0 +1,62 @@
+[
+  {
+    "title": "National Endowment for the Arts - Grants for Arts Projects",
+    "description": "Supports artistically excellent projects that celebrate creativity and cultural heritage, including music performances, festivals, and community arts programs.",
+    "external_url": "https://www.arts.gov/grants/grants-for-arts-projects",
+    "amount": "$10,000 - $100,000"
+  },
+  {
+    "title": "ACFTA - African Culture and Arts Fund",
+    "description": "Supports African arts organizations, musicians, and cultural institutions working to preserve and promote African music and performing arts across the continent.",
+    "external_url": "https://www.artscouncil.org.uk/developing-creativity-and-culture/international",
+    "amount": "Varies"
+  },
+  {
+    "title": "British Council - Arts Grants for Sub-Saharan Africa",
+    "description": "Funding for arts and cultural organizations in sub-Saharan Africa to develop creative projects, collaborations, and cultural exchanges with UK partners.",
+    "external_url": "https://www.britishcouncil.org/arts/sub-saharan-africa",
+    "amount": "£5,000 - £50,000"
+  },
+  {
+    "title": "Goethe-Institut Nigeria - Cultural Support Grants",
+    "description": "Supports Nigerian cultural and music organizations with funding for performances, workshops, and cultural exchange programs with German institutions.",
+    "external_url": "https://www.goethe.de/ins/ng/en/kul/sup.html",
+    "amount": "Varies"
+  },
+  {
+    "title": "Ford Foundation - Creativity and Free Expression",
+    "description": "Supports organizations that use art, culture, and media to promote social justice, with a focus on marginalized communities and creative expression.",
+    "external_url": "https://www.fordfoundation.org/work/challenging-inequality/creativity-and-free-expression/",
+    "amount": "Varies"
+  },
+  {
+    "title": "HEVA Fund - East Africa Creative Economy",
+    "description": "Provides grants and business support to creative enterprises in East Africa, including music, performing arts, and cultural organizations.",
+    "external_url": "https://www.hfrp.org/",
+    "amount": "$5,000 - $50,000"
+  },
+  {
+    "title": "New Music USA - Project Grants",
+    "description": "Supports the creation and performance of new music, funding composers, performers, and music organizations for innovative musical projects.",
+    "external_url": "https://www.newmusicusa.org/grants/",
+    "amount": "$500 - $10,000"
+  },
+  {
+    "title": "UNESCO International Fund for Cultural Diversity",
+    "description": "Supports projects that foster the diversity of cultural expressions in developing countries, including music and performing arts organizations.",
+    "external_url": "https://en.unesco.org/creativity/ifcd",
+    "amount": "$10,000 - $100,000"
+  },
+  {
+    "title": "TrustAfrica - Arts and Culture Programme",
+    "description": "Supports African organizations using arts and culture to drive social change, including music ensembles and community cultural programs.",
+    "external_url": "https://www.trustafrica.org/",
+    "amount": "Varies"
+  },
+  {
+    "title": "Prince Claus Fund - Cultural and Artistic Grants",
+    "description": "Supports cultural practitioners and organizations in Africa, Asia, Latin America and the Caribbean with grants for arts and culture projects.",
+    "external_url": "https://princeclausfund.org/grants",
+    "amount": "€10,000 - €25,000"
+  }
+]

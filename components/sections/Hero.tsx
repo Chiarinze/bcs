@@ -55,7 +55,7 @@ export default function Hero() {
           {/* CTA Buttons */}
           <div
             data-reveal
-            className="mt-12 flex flex-col sm:grid sm:grid-cols-2 items-center justify-center gap-5 transition-all duration-700 delay-200 w-full py-8"
+            className="mt-10 sm:mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5 transition-all duration-700 delay-200 max-w-md sm:max-w-lg mx-auto"
           >
             <Button
               variant="outline"

@@ -45,7 +45,7 @@ export interface TicketCategory {
 // ========== Member / Profile Types ==========
 
 export type MembershipStatus = "full_member" | "probationary";
-export type EnsembleArm = "choir" | "orchestra";
+export type EnsembleArm = "choir" | "orchestra" | "choir_orchestra" | "choir_band" | "orchestra_band" | "choir_orchestra_band";
 export type UserRole = "admin" | "member";
 
 export interface Profile {
@@ -64,6 +64,8 @@ export interface Profile {
   choir_part: string | null;
   orchestra_instrument: string | null;
   photo_url: string | null;
+  year_inducted: number | null;
+  membership_id: string | null;
   created_at: string;
 }
 
@@ -126,6 +128,24 @@ export interface Article {
 
 export interface ArticleWithAuthor extends Article {
   author: Pick<Profile, "first_name" | "last_name" | "photo_url">;
+}
+
+// ========== Grant Opportunity Types ==========
+
+export type GrantStatus = "unread" | "read" | "interested" | "applied";
+
+export interface GrantOpportunity {
+  id: string;
+  title: string;
+  description: string | null;
+  source_name: string;
+  source_url: string;
+  external_url: string;
+  deadline: string | null;
+  amount: string | null;
+  status: GrantStatus;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuditionRegistration {

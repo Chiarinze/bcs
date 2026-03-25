@@ -130,7 +130,7 @@ export default function DonatePage() {
         {/* Donation Form */}
         <form
           onSubmit={handleDonate}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6"
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-8 space-y-6"
         >
           {/* Preset Amounts */}
           <div>

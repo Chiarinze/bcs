@@ -87,8 +87,8 @@ export default function DocumentsSection({ event }: { event: any }) {
   }
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
           <h2 className="text-xl font-serif text-bcs-green">Event Documents</h2>
           <p className="text-sm text-gray-500">Upload programmes, schedules, or guest info.</p>
@@ -121,7 +121,7 @@ export default function DocumentsSection({ event }: { event: any }) {
                 </p>
               </div>
 
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="p-2 text-gray-400 hover:text-bcs-green transition-colors" title="View">
                   <ExternalLink size={18} />
                 </a>

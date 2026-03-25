@@ -119,12 +119,15 @@ export default function ProfileSetupPage() {
       return;
     }
 
-    if (ensembleArm === "choir" && !choirPart) {
+    const needsChoir = ["choir", "choir_orchestra", "choir_band", "choir_orchestra_band"].includes(ensembleArm);
+    const needsOrchestra = ["orchestra", "choir_orchestra", "orchestra_band", "choir_orchestra_band"].includes(ensembleArm);
+
+    if (needsChoir && !choirPart) {
       setError("Please select your choir part");
       return;
     }
 
-    if (ensembleArm === "orchestra" && !orchestraInstrument) {
+    if (needsOrchestra && !orchestraInstrument) {
       setError("Please select your instrument");
       return;
     }
@@ -176,9 +179,8 @@ export default function ProfileSetupPage() {
       date_of_birth: dateOfBirth,
       physical_address: physicalAddress.trim(),
       ensemble_arm: ensembleArm as EnsembleArm,
-      choir_part: ensembleArm === "choir" ? choirPart : null,
-      orchestra_instrument:
-        ensembleArm === "orchestra" ? orchestraInstrument : null,
+      choir_part: needsChoir ? choirPart : null,
+      orchestra_instrument: needsOrchestra ? orchestraInstrument : null,
       photo_url: photoUrl,
       profile_completed: true,
     };
@@ -231,7 +233,7 @@ export default function ProfileSetupPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg bg-white shadow-md rounded-2xl p-8 border border-gray-100"
+        className="w-full max-w-lg bg-white shadow-md rounded-2xl p-5 sm:p-8 border border-gray-100"
       >
         <div className="space-y-5">
           {/* Pre-filled fields */}
@@ -325,17 +327,21 @@ export default function ProfileSetupPage() {
               </option>
               <option value="choir">Choir</option>
               <option value="orchestra">Orchestra</option>
+              <option value="choir_orchestra">Choir & Orchestra</option>
+              <option value="choir_band">Choir & Band</option>
+              <option value="orchestra_band">Orchestra & Band</option>
+              <option value="choir_orchestra_band">Choir, Orchestra & Band</option>
             </select>
           </div>
 
-          {/* Choir Part — shown only if choir */}
-          {ensembleArm === "choir" && (
+          {/* Choir Part — shown if selection includes choir */}
+          {ensembleArm && ["choir", "choir_orchestra", "choir_band", "choir_orchestra_band"].includes(ensembleArm) && (
             <div className="space-y-1">
               <label
                 htmlFor="choir_part"
                 className="text-sm font-medium text-bcs-green"
               >
-                What Part?
+                What Part? (Choir)
               </label>
               <select
                 id="choir_part"
@@ -357,14 +363,14 @@ export default function ProfileSetupPage() {
             </div>
           )}
 
-          {/* Orchestra Instrument — shown only if orchestra */}
-          {ensembleArm === "orchestra" && (
+          {/* Orchestra Instrument — shown if selection includes orchestra */}
+          {ensembleArm && ["orchestra", "choir_orchestra", "orchestra_band", "choir_orchestra_band"].includes(ensembleArm) && (
             <div className="space-y-1">
               <label
                 htmlFor="orchestra_instrument"
                 className="text-sm font-medium text-bcs-green"
               >
-                What Instrument?
+                What Instrument? (Orchestra)
               </label>
               <select
                 id="orchestra_instrument"

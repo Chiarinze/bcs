@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { sendApprovalEmail } from "@/lib/email";
 import type { MembershipStatus } from "@/types";
 
 interface VerifyBody {
@@ -27,18 +26,41 @@ export async function POST(req: NextRequest) {
   const supabase = createServerSupabase();
 
   if (action === "approve") {
-    const updateData: Record<string, unknown> = { is_verified: true };
-
-    if (membership_status) {
-      updateData.membership_status = membership_status;
-    }
-
-    // Fetch the member's profile before updating (need email and name)
+    // Fetch the member's profile before updating
     const { data: member } = await supabase
       .from("profiles")
-      .select("email, first_name")
+      .select("email, first_name, membership_status, year_inducted")
       .eq("id", member_id)
       .single();
+
+    if (!member) {
+      return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
+
+    // Determine final membership status:
+    // Admin can only downgrade (full_member → probationary), never upgrade during verification
+    let finalStatus: MembershipStatus = member.membership_status;
+    if (membership_status && membership_status === "probationary") {
+      finalStatus = "probationary";
+    }
+    // If admin tried to upgrade from probationary to full_member, ignore it — keep probationary
+
+    const updateData: Record<string, unknown> = {
+      is_verified: true,
+      membership_status: finalStatus,
+    };
+
+    // Generate membership ID for full members
+    let membershipId: string | null = null;
+    if (finalStatus === "full_member" && member.year_inducted) {
+      const { data: idResult } = await supabase.rpc("generate_membership_id", {
+        p_year: member.year_inducted,
+      });
+      if (idResult) {
+        membershipId = idResult;
+        updateData.membership_id = membershipId;
+      }
+    }
 
     const { error } = await supabase
       .from("profiles")
@@ -49,16 +71,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Send approval email (non-blocking — don't fail the request if email fails)
-    if (member?.email) {
-      sendApprovalEmail({
-        to: member.email,
-        firstName: member.first_name || "Member",
-        membershipStatus: membership_status || "probationary",
-      }).catch((err) => {
-        console.error("Approval email failed:", err);
-      });
-    }
+    // Approval email is sent automatically by Supabase pg_net trigger
 
     return NextResponse.json({ success: true, message: "Member approved" });
   }

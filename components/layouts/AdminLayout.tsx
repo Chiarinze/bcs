@@ -12,6 +12,7 @@ import {
   Users,
   Heart,
   FileText,
+  Award,
   Menu,
   X,
 } from "lucide-react";
@@ -36,6 +37,7 @@ export default function AdminLayout({
     { href: "/admin/members", label: "Members", icon: Users },
     { href: "/admin/articles", label: "Articles", icon: FileText },
     { href: "/admin/donations", label: "Donations", icon: Heart },
+    { href: "/admin/grants", label: "Grants", icon: Award },
   ];
 
   async function handleLogout() {
