@@ -1,6 +1,5 @@
 import AdminLayout from "@/components/layouts/AdminLayout";
 import MembersList from "@/components/admin/MembersList";
-import { Users } from "lucide-react";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import type { Profile } from "@/types";
 
@@ -19,6 +18,7 @@ export default async function AdminMembersPage({
 
   const supabase = createServerSupabase();
 
+  // Fetch filtered members for the current tab
   let query = supabase
     .from("profiles")
     .select("*")
@@ -34,14 +34,23 @@ export default async function AdminMembersPage({
   const { data } = await query;
   const members: Profile[] = data || [];
 
+  // Fetch counts for all tabs
+  const [{ count: totalPending }, { count: totalVerified }, { count: totalAll }] =
+    await Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "member").eq("is_verified", false),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "member").eq("is_verified", true),
+      supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "member"),
+    ]);
+
   return (
-    <AdminLayout showBack>
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Users className="w-6 h-6 text-bcs-green" />
-        </div>
-        <MembersList initialMembers={members} initialFilter={filter} />
-      </div>
+    <AdminLayout>
+      <MembersList
+        initialMembers={members}
+        initialFilter={filter}
+        totalPending={totalPending ?? 0}
+        totalVerified={totalVerified ?? 0}
+        totalAll={totalAll ?? 0}
+      />
     </AdminLayout>
   );
 }

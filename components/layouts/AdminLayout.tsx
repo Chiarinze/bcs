@@ -13,6 +13,7 @@ import {
   Heart,
   FileText,
   Award,
+  Shield,
   Menu,
   X,
 } from "lucide-react";
@@ -35,6 +36,7 @@ export default function AdminLayout({
       ? []
       : [{ href: "/admin/events", label: "Dashboard", icon: Home }]),
     { href: "/admin/members", label: "Members", icon: Users },
+    { href: "/admin/roles", label: "Roles", icon: Shield },
     { href: "/admin/articles", label: "Articles", icon: FileText },
     { href: "/admin/donations", label: "Donations", icon: Heart },
     { href: "/admin/grants", label: "Grants", icon: Award },

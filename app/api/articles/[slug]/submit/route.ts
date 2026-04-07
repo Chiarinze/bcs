@@ -27,9 +27,9 @@ export async function POST(_req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (article.status !== "draft") {
+  if (article.status !== "draft" && article.status !== "rejected") {
     return NextResponse.json(
-      { error: "Only drafts can be submitted for review" },
+      { error: "Only drafts and rejected articles can be submitted for review" },
       { status: 400 }
     );
   }

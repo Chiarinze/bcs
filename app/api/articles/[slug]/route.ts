@@ -60,17 +60,18 @@ export async function PUT(req: NextRequest, { params }: Props) {
   const adminCheck = await requireAdmin();
   const isAdmin = !(adminCheck instanceof NextResponse);
 
-  // Non-admin can only edit own drafts
-  if (!isAdmin) {
-    if (existing.author_id !== auth.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    if (existing.status === "published") {
-      return NextResponse.json(
-        { error: "Cannot edit a published article. Contact admin." },
-        { status: 403 }
-      );
-    }
+  // Everyone can only edit their own articles
+  if (existing.author_id !== auth.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Non-admin can only directly edit drafts and rejected articles
+  // Published articles go through the pending_edit flow
+  if (!isAdmin && existing.status !== "draft" && existing.status !== "rejected" && existing.status !== "published") {
+    return NextResponse.json(
+      { error: "You cannot edit this article in its current state." },
+      { status: 403 }
+    );
   }
 
   const body = await req.json();
@@ -95,6 +96,34 @@ export async function PUT(req: NextRequest, { params }: Props) {
     },
   });
 
+  // If a non-admin is editing a published article, store as pending_edit
+  if (!isAdmin && existing.status === "published") {
+    const pendingEdit = {
+      title: title?.trim(),
+      excerpt: excerpt || null,
+      category: category || "News",
+      content: sanitizedContent,
+      cover_image_url: cover_image_url || null,
+      cover_image_blur_data: cover_image_blur_data || null,
+      submitted_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from("articles")
+      .update({
+        pending_edit: pendingEdit,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("slug", slug);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ slug, pending_edit: true });
+  }
+
+  // Direct edit (drafts, rejected, or admin editing)
   const updateData: Record<string, unknown> = {
     title: title?.trim(),
     excerpt: excerpt || null,

@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { createClient } from "@/lib/supabase/server";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import ArticleForm from "@/components/articles/ArticleForm";
 import type { Article } from "@/types";
@@ -12,6 +13,13 @@ interface Props {
 
 export default async function AdminEditArticlePage({ params }: Props) {
   const { slug } = await params;
+
+  // Get current admin user
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+
+  if (!user) redirect("/admin-login");
+
   const supabase = createServerSupabase();
 
   const { data } = await supabase
@@ -23,6 +31,11 @@ export default async function AdminEditArticlePage({ params }: Props) {
   if (!data) notFound();
 
   const article = data as Article;
+
+  // Admin can only edit their own articles
+  if (article.author_id !== user.id) {
+    redirect("/admin/articles");
+  }
 
   return (
     <AdminLayout showBack>

@@ -1,5 +1,3 @@
-import { supabase } from "./supabaseClient";
-
 async function generateColorPlaceholder(file: File): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -46,18 +44,20 @@ async function generateColorPlaceholder(file: File): Promise<string> {
 }
 
 export async function uploadArticleImage(file: File) {
-  const fileName = `${Date.now()}-${file.name}`;
-  const { error: uploadError } = await supabase.storage
-    .from("article-images")
-    .upload(fileName, file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-  if (uploadError) throw new Error(uploadError.message);
+  const res = await fetch("/api/articles/upload-image", {
+    method: "POST",
+    body: formData,
+  });
 
-  const { data: publicUrlData } = supabase.storage
-    .from("article-images")
-    .getPublicUrl(fileName);
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Upload failed");
+  }
 
-  const publicUrl = publicUrlData.publicUrl;
+  const { url: publicUrl } = await res.json();
 
   let blurData: string | null = null;
   try {

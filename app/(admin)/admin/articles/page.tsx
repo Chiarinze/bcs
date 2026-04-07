@@ -1,23 +1,26 @@
 import AdminLayout from "@/components/layouts/AdminLayout";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { FileText, Plus, Clock, Eye, Edit } from "lucide-react";
+import { FileText, Plus, Clock, Eye, Trash2 } from "lucide-react";
 import type { ArticleWithAuthor, ArticleStatus } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-type FilterType = "all" | "pending_review" | "published" | "draft";
+type FilterType = "all" | "pending_review" | "published" | "rejected" | "draft";
 
 function StatusBadge({ status }: { status: ArticleStatus }) {
   const styles: Record<string, string> = {
     draft: "bg-gray-100 text-gray-600",
     pending_review: "bg-yellow-100 text-yellow-700",
     published: "bg-green-100 text-green-700",
+    rejected: "bg-red-100 text-red-600",
   };
   const labels: Record<string, string> = {
     draft: "Draft",
     pending_review: "Pending Review",
     published: "Published",
+    rejected: "Rejected",
   };
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status]}`}>
@@ -35,23 +38,44 @@ export default async function AdminArticlesPage({
   const filter: FilterType =
     rawFilter === "pending_review" ||
     rawFilter === "published" ||
+    rawFilter === "rejected" ||
     rawFilter === "draft"
       ? rawFilter
       : "all";
 
   const supabase = createServerSupabase();
 
+  // Get current admin user
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  const adminId = user?.id;
+
+  // Build query: admin sees pending_review, published, rejected (all authors) + only their own drafts
   let query = supabase
     .from("articles")
     .select("*, author:profiles!author_id(first_name, last_name, photo_url)")
     .order("updated_at", { ascending: false });
 
-  if (filter !== "all") {
+  if (filter === "draft") {
+    // Only show admin's own drafts
+    query = query.eq("status", "draft").eq("author_id", adminId!);
+  } else if (filter !== "all") {
     query = query.eq("status", filter);
+  } else {
+    // "all" tab: show everything except other people's drafts
+    // Fetch all and filter client-side since Supabase doesn't support OR with different column filters elegantly
+    query = query;
   }
 
   const { data } = await query;
-  const articles = (data || []) as ArticleWithAuthor[];
+  let articles = (data || []) as ArticleWithAuthor[];
+
+  // For "all" filter, remove other people's drafts
+  if (filter === "all" && adminId) {
+    articles = articles.filter(
+      (a) => a.status !== "draft" || a.author_id === adminId
+    );
+  }
 
   // Count pending for badge
   const { count: pendingCount } = await supabase
@@ -63,7 +87,8 @@ export default async function AdminArticlesPage({
     { key: "all", label: "All" },
     { key: "pending_review", label: "Pending Review", count: pendingCount || 0 },
     { key: "published", label: "Published" },
-    { key: "draft", label: "Drafts" },
+    { key: "rejected", label: "Rejected" },
+    { key: "draft", label: "My Drafts" },
   ];
 
   return (
@@ -119,55 +144,61 @@ export default async function AdminArticlesPage({
           </div>
         ) : (
           <div className="space-y-3">
-            {articles.map((article) => (
-              <div
-                key={article.id}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900 truncate">
-                        {article.title}
-                      </h3>
-                      <StatusBadge status={article.status} />
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
-                      <span>
-                        By {article.author?.first_name}{" "}
-                        {article.author?.last_name}
-                      </span>
-                      <span>&middot;</span>
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(article.updated_at).toLocaleDateString(
-                          "en-NG",
-                          { year: "numeric", month: "short", day: "numeric" }
-                        )}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full bg-gray-50 text-gray-500">
-                        {article.category}
-                      </span>
-                    </div>
-                  </div>
+            {articles.map((article) => {
+              const isOwnArticle = article.author_id === adminId;
 
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/admin/articles/${article.slug}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-bcs-green border border-bcs-green rounded-full hover:bg-bcs-green hover:text-white transition"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Review
-                    </Link>
-                    <Link
-                      href={`/admin/articles/${article.slug}/edit`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-bcs-accent border border-bcs-accent rounded-full hover:bg-bcs-accent hover:text-white transition"
-                    >
-                      <Edit className="w-3.5 h-3.5" /> Edit
-                    </Link>
+              return (
+                <div
+                  key={article.id}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {article.title}
+                        </h3>
+                        <StatusBadge status={article.status} />
+                        {article.pending_edit && (
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            Edit Pending
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-400">
+                        <span>
+                          By {article.author?.first_name}{" "}
+                          {article.author?.last_name}
+                          {isOwnArticle && (
+                            <span className="ml-1 text-bcs-green">(You)</span>
+                          )}
+                        </span>
+                        <span>&middot;</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(article.updated_at).toLocaleDateString(
+                            "en-NG",
+                            { year: "numeric", month: "short", day: "numeric" }
+                          )}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-gray-50 text-gray-500">
+                          {article.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/articles/${article.slug}`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-bcs-green border border-bcs-green rounded-full hover:bg-bcs-green hover:text-white transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Review
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

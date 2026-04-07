@@ -34,7 +34,12 @@ export default async function EditArticlePage({ params }: Props) {
 
   const article = data as Article;
 
-  if (article.status === "published") {
+  if (article.status === "pending_review") {
+    redirect("/dashboard/articles");
+  }
+
+  // If published and already has a pending edit, don't allow another edit
+  if (article.status === "published" && article.pending_edit) {
     redirect("/dashboard/articles");
   }
 

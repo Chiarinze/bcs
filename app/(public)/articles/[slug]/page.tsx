@@ -2,8 +2,9 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import Image from "next/image";
-import { User, Calendar, Tag } from "lucide-react";
+import { User, Calendar, Tag, Eye } from "lucide-react";
 import type { ArticleWithAuthor } from "@/types";
+import ArticleEngagement from "@/components/articles/ArticleEngagement";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = article.title;
   const description =
     article.excerpt || "An article from The Benin Chorale & Philharmonic.";
-  const imageUrl = article.cover_image_url || "/icon.jpeg";
+  const imageUrl = article.cover_image_url || "https://www.beninchoraleandphilharmonic.com/icon.jpeg";
   const author = article.author as { first_name: string; last_name: string } | null;
 
   return {
@@ -39,6 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: [{ url: imageUrl, width: 1200, height: 630, alt: title }],
       publishedTime: article.published_at || undefined,
       authors: author ? [`${author.first_name} ${author.last_name}`] : undefined,
+      siteName: "The Benin Chorale & Philharmonic",
     },
     twitter: {
       card: "summary_large_image",
@@ -86,6 +88,8 @@ export default async function ArticlePage({ params }: Props) {
     },
   };
 
+  const articleUrl = `https://www.beninchoraleandphilharmonic.com/articles/${slug}`;
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -109,8 +113,8 @@ export default async function ArticlePage({ params }: Props) {
             {article.title}
           </h1>
 
-          {/* Author & Date */}
-          <div className="flex items-center gap-4 mb-8 pb-8 border-b border-gray-100">
+          {/* Author & Date & Views */}
+          <div className="flex flex-wrap items-center gap-4 mb-8 pb-8 border-b border-gray-100">
             <div className="flex items-center gap-3">
               {article.author?.photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -128,18 +132,26 @@ export default async function ArticlePage({ params }: Props) {
                 <p className="font-medium text-gray-900 text-sm">
                   {article.author?.first_name} {article.author?.last_name}
                 </p>
-                <div className="flex items-center gap-1 text-xs text-gray-400">
-                  <Calendar className="w-3 h-3" />
-                  {article.published_at
-                    ? new Date(article.published_at).toLocaleDateString(
-                        "en-NG",
-                        {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        }
-                      )
-                    : ""}
+                <div className="flex items-center gap-3 text-xs text-gray-400">
+                  <span className="inline-flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {article.published_at
+                      ? new Date(article.published_at).toLocaleDateString(
+                          "en-NG",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )
+                      : ""}
+                  </span>
+                  {article.view_count > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      <Eye className="w-3 h-3" />
+                      {article.view_count} {article.view_count === 1 ? "view" : "views"}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -169,6 +181,14 @@ export default async function ArticlePage({ params }: Props) {
           <div
             className="prose prose-lg max-w-none prose-headings:font-serif prose-headings:text-gray-900 prose-a:text-bcs-accent prose-img:rounded-xl prose-blockquote:border-bcs-green/30 prose-blockquote:text-gray-600"
             dangerouslySetInnerHTML={{ __html: article.content }}
+          />
+
+          {/* Engagement Section (Likes, Share, Comments) */}
+          <ArticleEngagement
+            slug={slug}
+            articleTitle={article.title}
+            articleUrl={articleUrl}
+            authorId={article.author_id}
           />
         </div>
       </article>

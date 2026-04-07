@@ -221,32 +221,45 @@ export default function ArticleForm({
 
       {/* Action Buttons */}
       <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
-        <Button
-          variant="outline"
-          loading={saving}
-          onClick={() => saveArticle("draft")}
-        >
-          Save Draft
-        </Button>
-
-        {!isAdmin && (
+        {isEditing && article.status === "published" && !isAdmin ? (
+          /* Member editing a published article — submit for approval */
           <Button
             variant="primary"
-            loading={submitting}
-            onClick={() => saveArticle("pending_review")}
+            loading={saving}
+            onClick={() => saveArticle("draft")}
           >
-            Submit for Review
+            Submit Edit for Approval
           </Button>
-        )}
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              loading={saving}
+              onClick={() => saveArticle("draft")}
+            >
+              Save Draft
+            </Button>
 
-        {isAdmin && (
-          <Button
-            variant="primary"
-            loading={publishing}
-            onClick={() => saveArticle("published")}
-          >
-            Publish
-          </Button>
+            {!isAdmin && (
+              <Button
+                variant="primary"
+                loading={submitting}
+                onClick={() => saveArticle("pending_review")}
+              >
+                Submit for Review
+              </Button>
+            )}
+
+            {isAdmin && (
+              <Button
+                variant="primary"
+                loading={publishing}
+                onClick={() => saveArticle("published")}
+              >
+                Publish
+              </Button>
+            )}
+          </>
         )}
       </div>
     </div>

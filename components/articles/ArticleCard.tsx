@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { User } from "lucide-react";
+import { User, Eye } from "lucide-react";
 import type { ArticleWithAuthor } from "@/types";
 
 export default function ArticleCard({
@@ -9,10 +9,10 @@ export default function ArticleCard({
   article: ArticleWithAuthor;
 }) {
   return (
-    <Link href={`/articles/${article.slug}`} className="group block">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover-lift">
-        {/* Cover Image */}
-        <div className="aspect-[16/9] relative bg-gray-100">
+    <Link href={`/articles/${article.slug}`} className="group block h-full">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover-lift h-full flex flex-col">
+        {/* Cover Image — fixed aspect ratio */}
+        <div className="aspect-[16/9] relative bg-gray-100 flex-shrink-0">
           {article.cover_image_url ? (
             <Image
               src={article.cover_image_url}
@@ -31,9 +31,9 @@ export default function ArticleCard({
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-5">
-          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-bcs-green/10 text-bcs-green mb-3">
+        {/* Content — flex-grow to fill remaining space */}
+        <div className="p-5 flex flex-col flex-1">
+          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-bcs-green/10 text-bcs-green mb-3 self-start">
             {article.category}
           </span>
 
@@ -41,13 +41,12 @@ export default function ArticleCard({
             {article.title}
           </h3>
 
-          {article.excerpt && (
-            <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-              {article.excerpt}
-            </p>
-          )}
+          <p className="text-sm text-gray-500 line-clamp-2 mb-4 flex-1">
+            {article.excerpt || ""}
+          </p>
 
-          <div className="flex items-center gap-3 text-xs text-gray-400">
+          {/* Footer — always pinned to bottom */}
+          <div className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-50 mt-auto">
             <div className="flex items-center gap-1.5">
               {article.author?.photo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -63,16 +62,23 @@ export default function ArticleCard({
                 {article.author?.first_name} {article.author?.last_name}
               </span>
             </div>
-            <span>&middot;</span>
-            <span>
-              {article.published_at
-                ? new Date(article.published_at).toLocaleDateString("en-NG", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })
-                : ""}
-            </span>
+            <div className="flex items-center gap-3">
+              {article.view_count > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  {article.view_count}
+                </span>
+              )}
+              <span>
+                {article.published_at
+                  ? new Date(article.published_at).toLocaleDateString("en-NG", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : ""}
+              </span>
+            </div>
           </div>
         </div>
       </div>

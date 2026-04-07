@@ -556,21 +556,14 @@ export default function ProfilePage() {
                   value={profile.orchestra_instrument}
                 />
               )}
-              {profile.year_inducted && (
-                <InfoField
-                  icon={<Calendar className="w-4 h-4" />}
-                  label="Year Inducted"
-                  value={String(profile.year_inducted)}
-                />
-              )}
               <InfoField
                 icon={<Calendar className="w-4 h-4" />}
-                label="Member Since"
-                value={new Date(profile.created_at).toLocaleDateString("en-NG", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+                label="Year Joined"
+                value={
+                  profile.membership_status === "full_member" && profile.year_inducted
+                    ? String(profile.year_inducted)
+                    : "—"
+                }
               />
             </div>
           </div>

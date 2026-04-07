@@ -99,9 +99,23 @@ export interface Donation {
   created_at: string;
 }
 
+// ========== Member Role Types ==========
+
+export type RoleCategory = "executive" | "management";
+
+export interface MemberRole {
+  id: string;
+  title: string;
+  category: RoleCategory;
+  assigned_to: string | null;
+  choir_part_required: string | null;
+  created_at: string;
+  assignee?: Pick<Profile, "id" | "first_name" | "last_name" | "photo_url" | "choir_part"> | null;
+}
+
 // ========== Article / Blog Types ==========
 
-export type ArticleStatus = "draft" | "pending_review" | "published";
+export type ArticleStatus = "draft" | "pending_review" | "published" | "rejected";
 export type ArticleCategory =
   | "News"
   | "Music Education"
@@ -122,12 +136,24 @@ export interface Article {
   rejection_note: string | null;
   author_id: string;
   published_at: string | null;
+  view_count: number;
+  pending_edit: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface ArticleWithAuthor extends Article {
   author: Pick<Profile, "first_name" | "last_name" | "photo_url">;
+}
+
+export interface ArticleComment {
+  id: string;
+  article_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user?: Pick<Profile, "first_name" | "last_name" | "photo_url">;
 }
 
 // ========== Grant Opportunity Types ==========

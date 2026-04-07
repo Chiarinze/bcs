@@ -27,23 +27,37 @@ export default function AdminArticleDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [rejectionNote, setRejectionNote] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [showRejectEditForm, setShowRejectEditForm] = useState(false);
+  const [editRejectionNote, setEditRejectionNote] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchArticle() {
+    async function fetchData() {
+      // Get current user
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+
       const res = await fetch(`/api/articles/${slug}`);
       if (res.ok) {
         setArticle(await res.json());
       }
       setLoading(false);
     }
-    fetchArticle();
+    fetchData();
   }, [slug]);
 
-  async function handlePublishAction(action: "publish" | "unpublish" | "reject") {
+  const isOwnArticle = currentUserId && article?.author_id === currentUserId;
+
+  async function handlePublishAction(action: "publish" | "unpublish" | "reject" | "approve_edit" | "reject_edit") {
     setActionLoading(true);
     const body: Record<string, string> = { action };
     if (action === "reject") {
       body.rejection_note = rejectionNote || "Rejected by admin";
+    }
+    if (action === "reject_edit") {
+      body.rejection_note = editRejectionNote || "Edit rejected by admin";
     }
 
     const res = await fetch(`/api/articles/${slug}/publish`, {
@@ -101,12 +115,14 @@ export default function AdminArticleDetailPage() {
     draft: "Draft",
     pending_review: "Pending Review",
     published: "Published",
+    rejected: "Rejected",
   };
 
   const statusStyles: Record<string, string> = {
     draft: "bg-gray-100 text-gray-600",
     pending_review: "bg-yellow-100 text-yellow-700",
     published: "bg-green-100 text-green-700",
+    rejected: "bg-red-100 text-red-600",
   };
 
   return (
@@ -133,6 +149,9 @@ export default function AdminArticleDetailPage() {
                 <span className="inline-flex items-center gap-1.5">
                   <User className="w-4 h-4" />
                   {article.author?.first_name} {article.author?.last_name}
+                  {isOwnArticle && (
+                    <span className="text-xs text-bcs-green">(You)</span>
+                  )}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Tag className="w-4 h-4" />
@@ -153,6 +172,16 @@ export default function AdminArticleDetailPage() {
                   {article.excerpt}
                 </p>
               )}
+
+              {article.rejection_note && (
+                <div className="flex items-start gap-2 mt-2 p-3 bg-red-50 rounded-lg">
+                  <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-red-700">Rejection Note</p>
+                    <p className="text-sm text-red-600">{article.rejection_note}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -162,7 +191,8 @@ export default function AdminArticleDetailPage() {
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Actions</h3>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {(article.status === "pending_review" ||
-              article.status === "draft") && (
+              article.status === "draft" ||
+              article.status === "rejected") && (
               <Button
                 variant="primary"
                 loading={actionLoading}
@@ -194,15 +224,18 @@ export default function AdminArticleDetailPage() {
               </Button>
             )}
 
-            <Button
-              variant="outline"
-              onClick={() =>
-                router.push(`/admin/articles/${article.slug}/edit`)
-              }
-              className="flex items-center gap-1"
-            >
-              <Edit className="w-4 h-4" /> Edit
-            </Button>
+            {/* Only show Edit for admin's own articles */}
+            {isOwnArticle && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  router.push(`/admin/articles/${article.slug}/edit`)
+                }
+                className="flex items-center gap-1"
+              >
+                <Edit className="w-4 h-4" /> Edit
+              </Button>
+            )}
 
             {article.status === "published" && (
               <a
@@ -229,12 +262,12 @@ export default function AdminArticleDetailPage() {
           {showRejectForm && (
             <div className="mt-4 p-4 bg-yellow-50 rounded-xl space-y-3">
               <label className="block text-sm font-medium text-gray-700">
-                Rejection Note (optional)
+                Rejection Note
               </label>
               <textarea
                 value={rejectionNote}
                 onChange={(e) => setRejectionNote(e.target.value)}
-                placeholder="Explain why this article is being rejected..."
+                placeholder="Explain why this article is being rejected so the author can make corrections..."
                 rows={3}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition resize-none"
               />
@@ -259,6 +292,104 @@ export default function AdminArticleDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Pending Edit Review */}
+        {!!article.pending_edit && (() => {
+          const edit = article.pending_edit as { title?: string; excerpt?: string; cover_image_url?: string; content?: string };
+          return (
+            <div className="bg-blue-50 rounded-2xl border border-blue-200 p-4 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-blue-800">
+                  Pending Edit from Author
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                  Awaiting Review
+                </span>
+              </div>
+
+              <div className="bg-white rounded-xl p-4 space-y-3 text-sm">
+                <div>
+                  <span className="text-gray-400 text-xs uppercase tracking-wider">Title</span>
+                  <p className="text-gray-900 font-medium">{edit.title}</p>
+                </div>
+                {edit.excerpt && (
+                  <div>
+                    <span className="text-gray-400 text-xs uppercase tracking-wider">Excerpt</span>
+                    <p className="text-gray-700">{edit.excerpt}</p>
+                  </div>
+                )}
+                {edit.cover_image_url && (
+                  <div>
+                    <span className="text-gray-400 text-xs uppercase tracking-wider">New Cover Image</span>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={edit.cover_image_url}
+                      alt="Proposed cover"
+                      className="w-full h-40 object-cover rounded-lg mt-1"
+                    />
+                  </div>
+                )}
+                {edit.content && (
+                  <div>
+                    <span className="text-gray-400 text-xs uppercase tracking-wider">Content Preview</span>
+                    <div
+                      className="prose prose-sm max-w-none mt-1 max-h-60 overflow-y-auto border border-gray-100 rounded-lg p-3"
+                      dangerouslySetInnerHTML={{ __html: edit.content }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="primary"
+                  loading={actionLoading}
+                  onClick={() => handlePublishAction("approve_edit")}
+                  className="flex items-center gap-1"
+                >
+                  <CheckCircle className="w-4 h-4" /> Approve Edit
+                </Button>
+                {!showRejectEditForm ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowRejectEditForm(true)}
+                    className="flex items-center gap-1 border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+                  >
+                    <XCircle className="w-4 h-4" /> Reject Edit
+                  </Button>
+                ) : (
+                  <div className="w-full mt-2 p-4 bg-yellow-50 rounded-xl space-y-3">
+                    <textarea
+                      value={editRejectionNote}
+                      onChange={(e) => setEditRejectionNote(e.target.value)}
+                      placeholder="Explain why this edit is being rejected..."
+                      rows={2}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="danger"
+                        loading={actionLoading}
+                        onClick={() => handlePublishAction("reject_edit")}
+                      >
+                        Confirm Reject
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowRejectEditForm(false);
+                          setEditRejectionNote("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Cover Image Preview */}
         {article.cover_image_url && (
