@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   Home,
   FileText,
+  ClipboardCheck,
   User,
   LogOut,
   Menu,
@@ -19,15 +20,18 @@ import type { Profile } from "@/types";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/dashboard/articles", label: "Articles", icon: FileText },
+  { href: "/dashboard/attendance", label: "Attendance", icon: ClipboardCheck },
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ];
 
 export default function MemberLayout({
   children,
   profile,
+  isExecutive = false,
 }: {
   children: React.ReactNode;
   profile: Profile;
+  isExecutive?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -181,6 +185,16 @@ export default function MemberLayout({
                 </Link>
               );
             })}
+            {isExecutive && (
+              <Link
+                href="/dashboard/attendance?tab=take"
+                onClick={() => setSidebarOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+              >
+                <ClipboardCheck className="w-[18px] h-[18px]" />
+                Mark Attendance
+              </Link>
+            )}
           </nav>
 
           {/* Logout */}

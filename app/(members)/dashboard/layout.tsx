@@ -31,5 +31,18 @@ export default async function DashboardLayout({
     redirect("/profile-setup");
   }
 
-  return <MemberLayout profile={profile}>{children}</MemberLayout>;
+  // Check if user holds an executive role
+  const { data: executiveRole } = await serverSupabase
+    .from("member_roles")
+    .select("id")
+    .eq("assigned_to", user.id)
+    .eq("category", "executive")
+    .limit(1)
+    .maybeSingle();
+
+  return (
+    <MemberLayout profile={profile} isExecutive={!!executiveRole}>
+      {children}
+    </MemberLayout>
+  );
 }

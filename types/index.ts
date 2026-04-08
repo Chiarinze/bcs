@@ -113,6 +113,28 @@ export interface MemberRole {
   assignee?: Pick<Profile, "id" | "first_name" | "last_name" | "photo_url" | "choir_part"> | null;
 }
 
+// ========== Attendance Types ==========
+
+export type AttendanceStatus = "present" | "absent_with_permission" | "absent";
+
+export interface AttendanceSession {
+  id: string;
+  session_date: string;
+  taken_by: string;
+  signature: string;
+  created_at: string;
+  taker?: Pick<Profile, "first_name" | "last_name" | "photo_url"> | null;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  session_id: string;
+  member_id: string;
+  status: AttendanceStatus;
+  note: string | null;
+  member?: Pick<Profile, "id" | "first_name" | "last_name" | "photo_url" | "ensemble_arm" | "choir_part"> | null;
+}
+
 // ========== Article / Blog Types ==========
 
 export type ArticleStatus = "draft" | "pending_review" | "published" | "rejected";

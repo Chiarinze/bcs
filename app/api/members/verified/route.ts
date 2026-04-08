@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
-import { requireAdmin } from "@/lib/requireAdmin";
+import { requireAuth } from "@/lib/requireAuth";
 
 export async function GET(req: NextRequest) {
-  const admin = await requireAdmin();
-  if (admin instanceof NextResponse) return admin;
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
 
   const { searchParams } = new URL(req.url);
   const choirPart = searchParams.get("choir_part");
