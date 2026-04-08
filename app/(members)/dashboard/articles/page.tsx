@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import Link from "next/link";
-import { FileText, Plus, AlertCircle, Clock, CheckCircle, Edit } from "lucide-react";
+import { FileText, Plus, AlertCircle, Clock, CheckCircle, Edit, BookOpen } from "lucide-react";
 import type { Article } from "@/types";
+import DeleteDraftButton from "@/components/articles/DeleteDraftButton";
 
 export const dynamic = "force-dynamic";
 
@@ -55,12 +56,20 @@ export default async function MemberArticlesPage() {
             Manage your articles and drafts.
           </p>
         </div>
-        <Link
-          href="/dashboard/articles/new"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-bcs-green text-white text-sm font-medium hover:bg-bcs-green/90 transition"
-        >
-          <Plus className="w-4 h-4" /> New Article
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/articles/new?type=article"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-bcs-green text-white text-sm font-medium hover:bg-bcs-green/90 transition"
+          >
+            <Plus className="w-4 h-4" /> New Article
+          </Link>
+          <Link
+            href="/dashboard/articles/new?type=poetry"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-bcs-green text-bcs-green text-sm font-medium hover:bg-bcs-green hover:text-white transition"
+          >
+            <BookOpen className="w-4 h-4" /> New Poetry
+          </Link>
+        </div>
       </div>
 
       {/* Articles List */}
@@ -95,6 +104,16 @@ export default async function MemberArticlesPage() {
                         {article.title}
                       </h3>
                       <StatusBadge status={article.status} />
+                      {article.content_type === "poetry" && (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                          Poetry
+                        </span>
+                      )}
+                      {article.is_rated_18 && (
+                        <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-red-600 text-white">
+                          18+
+                        </span>
+                      )}
                       {hasPendingEdit && (
                         <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                           Edit Pending Approval
@@ -148,13 +167,18 @@ export default async function MemberArticlesPage() {
                       </>
                     )}
                     {canEdit && (
-                      <Link
-                        href={`/dashboard/articles/${article.slug}/edit`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-bcs-accent border border-bcs-accent rounded-full hover:bg-bcs-accent hover:text-white transition"
-                      >
-                        <Edit className="w-3.5 h-3.5" />
-                        {article.status === "rejected" ? "Fix & Resubmit" : "Edit"}
-                      </Link>
+                      <>
+                        <Link
+                          href={`/dashboard/articles/${article.slug}/edit`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-bcs-accent border border-bcs-accent rounded-full hover:bg-bcs-accent hover:text-white transition"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          {article.status === "rejected" ? "Fix & Resubmit" : "Edit"}
+                        </Link>
+                        {article.status === "draft" && (
+                          <DeleteDraftButton slug={article.slug} />
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

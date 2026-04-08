@@ -7,6 +7,9 @@ import {
   Share2,
   Send,
   Trash2,
+  Pencil,
+  Check,
+  X,
   User,
 } from "lucide-react";
 import type { ArticleComment } from "@/types";
@@ -28,6 +31,9 @@ export default function ArticleEngagement({ slug, articleTitle, articleUrl, auth
   const [showComments, setShowComments] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     // Fetch like status
@@ -135,6 +141,36 @@ export default function ArticleEngagement({ slug, articleTitle, articleUrl, auth
     if (res.ok) {
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     }
+  }
+
+  function isWithinEditWindow(createdAt: string) {
+    const created = new Date(createdAt).getTime();
+    const now = Date.now();
+    return now - created < 20 * 60 * 1000;
+  }
+
+  async function handleEditComment(commentId: string) {
+    if (!editText.trim()) return;
+
+    setEditLoading(true);
+    const res = await fetch(`/api/articles/${slug}/comments`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: commentId, content: editText.trim() }),
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setComments((prev) =>
+        prev.map((c) => (c.id === commentId ? updated : c))
+      );
+      setEditingCommentId(null);
+      setEditText("");
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to edit comment");
+    }
+    setEditLoading(false);
   }
 
   const encodedUrl = encodeURIComponent(articleUrl);
@@ -299,17 +335,67 @@ export default function ArticleEngagement({ slug, articleTitle, articleUrl, auth
                           </span>
                         </div>
                         {currentUserId === comment.user_id && (
-                          <button
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="p-1 text-gray-300 hover:text-red-500 transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            {isWithinEditWindow(comment.created_at) && editingCommentId !== comment.id && (
+                              <button
+                                onClick={() => {
+                                  setEditingCommentId(comment.id);
+                                  setEditText(comment.content);
+                                }}
+                                className="p-1 text-gray-300 hover:text-bcs-green transition"
+                                title="Edit comment"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="p-1 text-gray-300 hover:text-red-500 transition"
+                              title="Delete comment"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
-                        {comment.content}
-                      </p>
+                      {editingCommentId === comment.id ? (
+                        <div className="mt-1.5">
+                          <textarea
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            rows={2}
+                            maxLength={2000}
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-bcs-green/30"
+                          />
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <button
+                              onClick={() => handleEditComment(comment.id)}
+                              disabled={editLoading || !editText.trim()}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-bcs-green text-white text-xs font-medium hover:bg-bcs-green/90 disabled:opacity-50 transition"
+                            >
+                              <Check className="w-3 h-3" />
+                              {editLoading ? "Saving..." : "Save"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingCommentId(null);
+                                setEditText("");
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-gray-500 text-xs font-medium hover:bg-gray-100 transition"
+                            >
+                              <X className="w-3 h-3" />
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
+                          {comment.content}
+                          {comment.updated_at !== comment.created_at && (
+                            <span className="text-xs text-gray-400 ml-1">(edited)</span>
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

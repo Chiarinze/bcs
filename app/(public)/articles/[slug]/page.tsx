@@ -5,6 +5,7 @@ import Image from "next/image";
 import { User, Calendar, Tag, Eye } from "lucide-react";
 import type { ArticleWithAuthor } from "@/types";
 import ArticleEngagement from "@/components/articles/ArticleEngagement";
+import AgeGateWrapper from "@/components/articles/AgeGateWrapper";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -89,8 +90,9 @@ export default async function ArticlePage({ params }: Props) {
   };
 
   const articleUrl = `https://www.beninchoraleandphilharmonic.com/articles/${slug}`;
+  const typeLabel = article.content_type === "poetry" ? "Poetry" : article.category;
 
-  return (
+  const articleContent = (
     <>
       {/* JSON-LD Structured Data */}
       <script
@@ -100,12 +102,17 @@ export default async function ArticlePage({ params }: Props) {
 
       <article className="py-16 md:py-24">
         <div className="max-w-3xl mx-auto px-4">
-          {/* Category Badge */}
-          <div className="mb-4">
+          {/* Category / Type Badge */}
+          <div className="mb-4 flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-bcs-green/10 text-bcs-green">
               <Tag className="w-3 h-3" />
-              {article.category}
+              {typeLabel}
             </span>
+            {article.is_rated_18 && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-600 text-white">
+                18+
+              </span>
+            )}
           </div>
 
           {/* Title */}
@@ -130,7 +137,7 @@ export default async function ArticlePage({ params }: Props) {
               )}
               <div>
                 <p className="font-medium text-gray-900 text-sm">
-                  {article.author?.first_name} {article.author?.last_name}
+                  {article.pen_name || `${article.author?.first_name} ${article.author?.last_name}`}
                 </p>
                 <div className="flex items-center gap-3 text-xs text-gray-400">
                   <span className="inline-flex items-center gap-1">
@@ -194,4 +201,11 @@ export default async function ArticlePage({ params }: Props) {
       </article>
     </>
   );
+
+  // Wrap in age gate if rated 18+
+  if (article.is_rated_18) {
+    return <AgeGateWrapper>{articleContent}</AgeGateWrapper>;
+  }
+
+  return articleContent;
 }

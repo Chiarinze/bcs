@@ -142,8 +142,12 @@ export type ArticleCategory =
   | "News"
   | "Music Education"
   | "Behind the Scenes"
+  | "Entertainment"
+  | "Gist"
+  | "Gossip"
   | "Event Recap"
   | "Announcements";
+export type ContentType = "article" | "poetry";
 
 export interface Article {
   id: string;
@@ -154,11 +158,14 @@ export interface Article {
   cover_image_url: string | null;
   cover_image_blur_data: string | null;
   category: ArticleCategory;
+  content_type: ContentType;
+  is_rated_18: boolean;
   status: ArticleStatus;
   rejection_note: string | null;
   author_id: string;
   published_at: string | null;
   view_count: number;
+  pen_name: string | null;
   pending_edit: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;

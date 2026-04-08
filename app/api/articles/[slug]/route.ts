@@ -75,7 +75,7 @@ export async function PUT(req: NextRequest, { params }: Props) {
   }
 
   const body = await req.json();
-  const { title, excerpt, category, content, cover_image_url, cover_image_blur_data, status } = body;
+  const { title, excerpt, category, content, content_type, is_rated_18, pen_name, cover_image_url, cover_image_blur_data, status } = body;
 
   const sanitizedContent = sanitizeHtml(content || "", {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat([
@@ -101,7 +101,10 @@ export async function PUT(req: NextRequest, { params }: Props) {
     const pendingEdit = {
       title: title?.trim(),
       excerpt: excerpt || null,
-      category: category || "News",
+      category: category || "Entertainment",
+      content_type: content_type || "article",
+      is_rated_18: content_type === "poetry" ? !!is_rated_18 : false,
+      pen_name: content_type === "poetry" ? (pen_name?.trim() || null) : null,
       content: sanitizedContent,
       cover_image_url: cover_image_url || null,
       cover_image_blur_data: cover_image_blur_data || null,
@@ -127,7 +130,10 @@ export async function PUT(req: NextRequest, { params }: Props) {
   const updateData: Record<string, unknown> = {
     title: title?.trim(),
     excerpt: excerpt || null,
-    category: category || "News",
+    category: category || "Entertainment",
+    content_type: content_type || "article",
+    is_rated_18: content_type === "poetry" ? !!is_rated_18 : false,
+    pen_name: content_type === "poetry" ? (pen_name?.trim() || null) : null,
     content: sanitizedContent,
     cover_image_url: cover_image_url || null,
     cover_image_blur_data: cover_image_blur_data || null,

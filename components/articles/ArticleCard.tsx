@@ -29,13 +29,21 @@ export default function ArticleCard({
               <span className="text-4xl font-serif text-bcs-green/30">BCS</span>
             </div>
           )}
+          {/* 18+ Badge */}
+          {article.is_rated_18 && (
+            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-red-600 text-white text-xs font-bold shadow">
+              18+
+            </div>
+          )}
         </div>
 
         {/* Content — flex-grow to fill remaining space */}
         <div className="p-5 flex flex-col flex-1">
-          <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-bcs-green/10 text-bcs-green mb-3 self-start">
-            {article.category}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5 mb-3">
+            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-bcs-green/10 text-bcs-green">
+              {article.content_type === "poetry" ? "Poetry" : article.category}
+            </span>
+          </div>
 
           <h3 className="text-lg font-serif text-gray-900 group-hover:text-bcs-green transition-colors line-clamp-2 mb-2">
             {article.title}
@@ -59,7 +67,7 @@ export default function ArticleCard({
                 <User className="w-4 h-4" />
               )}
               <span>
-                {article.author?.first_name} {article.author?.last_name}
+                {article.pen_name || `${article.author?.first_name} ${article.author?.last_name}`}
               </span>
             </div>
             <div className="flex items-center gap-3">

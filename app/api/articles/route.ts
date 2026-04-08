@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   const body = await req.json();
-  const { title, excerpt, category, content, cover_image_url, cover_image_blur_data, status } = body;
+  const { title, excerpt, category, content, content_type, is_rated_18, pen_name, cover_image_url, cover_image_blur_data, status } = body;
 
   if (!title?.trim()) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
     title: title.trim(),
     slug,
     excerpt: excerpt || null,
-    category: category || "News",
+    category: category || "Entertainment",
+    content_type: content_type || "article",
+    is_rated_18: content_type === "poetry" ? !!is_rated_18 : false,
+    pen_name: content_type === "poetry" ? (pen_name?.trim() || null) : null,
     content: sanitizedContent,
     cover_image_url: cover_image_url || null,
     cover_image_blur_data: cover_image_blur_data || null,

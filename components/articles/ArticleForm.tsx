@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import TipTapEditor from "./TipTapEditor";
 import { uploadArticleImage } from "@/lib/uploadArticleImage";
 import Button from "@/components/ui/Button";
 import { ImageIcon } from "lucide-react";
-import type { Article, ArticleCategory } from "@/types";
+import type { Article, ArticleCategory, ContentType } from "@/types";
 
 const CATEGORIES: ArticleCategory[] = [
   "News",
   "Music Education",
   "Behind the Scenes",
+  "Entertainment",
+  "Gist",
+  "Gossip",
   "Event Recap",
   "Announcements",
 ];
@@ -20,16 +23,21 @@ interface ArticleFormProps {
   article?: Article;
   isAdmin?: boolean;
   redirectPath: string;
+  defaultContentType?: ContentType;
 }
 
 export default function ArticleForm({
   article,
   isAdmin,
   redirectPath,
+  defaultContentType,
 }: ArticleFormProps) {
   const router = useRouter();
   const isEditing = !!article;
 
+  const [contentType, setContentType] = useState<ContentType>(
+    article?.content_type || defaultContentType || "article"
+  );
   const [title, setTitle] = useState(article?.title || "");
   const [excerpt, setExcerpt] = useState(article?.excerpt || "");
   const [category, setCategory] = useState<ArticleCategory>(
@@ -42,10 +50,47 @@ export default function ArticleForm({
   const [coverBlurData, setCoverBlurData] = useState(
     article?.cover_image_blur_data || ""
   );
+  const [isRated18, setIsRated18] = useState<boolean | null>(
+    article ? article.is_rated_18 : null
+  );
+  const [penName, setPenName] = useState(article?.pen_name || "");
+  const [pastPenNames, setPastPenNames] = useState<string[]>([]);
+  const [showPenSuggestions, setShowPenSuggestions] = useState(false);
+  const penNameRef = useRef<HTMLDivElement>(null);
+
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [publishing, setPublishing] = useState(false);
+
+  // Fetch past pen names for poetry
+  useEffect(() => {
+    if (contentType !== "poetry") return;
+
+    async function loadPenNames() {
+      try {
+        const res = await fetch("/api/articles/pen-names");
+        if (res.ok) {
+          const names = await res.json();
+          setPastPenNames(names);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    loadPenNames();
+  }, [contentType]);
+
+  // Close pen name suggestions on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (penNameRef.current && !penNameRef.current.contains(e.target as Node)) {
+        setShowPenSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -67,8 +112,34 @@ export default function ArticleForm({
       alert("Please enter a title.");
       return;
     }
+    if (!excerpt.trim()) {
+      alert("Please enter an excerpt.");
+      return;
+    }
     if (!content.trim() || content === "<p></p>") {
       alert("Please write some content.");
+      return;
+    }
+    if (contentType === "article" && !category) {
+      alert("Please select a category.");
+      return;
+    }
+
+    // Cover image is required for submission and publishing
+    if (status !== "draft" && !coverImageUrl) {
+      alert("Please upload a cover image before submitting.");
+      return;
+    }
+
+    // Poetry must have 18+ rating confirmed
+    if (contentType === "poetry" && isRated18 === null) {
+      alert("Please indicate whether this poetry is rated 18+ or not.");
+      return;
+    }
+
+    // Poetry requires pen name
+    if (contentType === "poetry" && !penName.trim()) {
+      alert("Please enter a pen name for your poetry.");
       return;
     }
 
@@ -77,6 +148,9 @@ export default function ArticleForm({
       excerpt: excerpt.trim() || null,
       category,
       content,
+      content_type: contentType,
+      is_rated_18: contentType === "poetry" ? (isRated18 ?? false) : false,
+      pen_name: contentType === "poetry" ? penName.trim() : null,
       cover_image_url: coverImageUrl || null,
       cover_image_blur_data: coverBlurData || null,
       status,
@@ -105,7 +179,7 @@ export default function ArticleForm({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to save article");
+        throw new Error(data.error || "Failed to save");
       }
 
       const data = await res.json();
@@ -125,26 +199,109 @@ export default function ArticleForm({
     loadingSetter(false);
   }
 
+  const filteredPenSuggestions = pastPenNames.filter(
+    (n) => n.toLowerCase().includes(penName.toLowerCase()) && n !== penName
+  );
+
   return (
     <div className="space-y-6">
+      {/* Content Type — only when creating */}
+      {!isEditing && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            What are you writing?
+          </label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setContentType("article");
+                setIsRated18(null);
+              }}
+              className={`flex-1 px-4 py-3 rounded-xl border text-sm font-medium transition ${
+                contentType === "article"
+                  ? "border-bcs-green bg-bcs-green/5 text-bcs-green ring-2 ring-bcs-green/20"
+                  : "border-gray-200 text-gray-500 hover:border-gray-300"
+              }`}
+            >
+              Article / Blog Post
+            </button>
+            <button
+              type="button"
+              onClick={() => setContentType("poetry")}
+              className={`flex-1 px-4 py-3 rounded-xl border text-sm font-medium transition ${
+                contentType === "poetry"
+                  ? "border-bcs-green bg-bcs-green/5 text-bcs-green ring-2 ring-bcs-green/20"
+                  : "border-gray-200 text-gray-500 hover:border-gray-300"
+              }`}
+            >
+              Poetry
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Title */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Title
+          Title <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Article title"
+          placeholder={contentType === "poetry" ? "Poem title" : "Article title"}
           className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-bcs-accent/40 focus:border-bcs-accent transition"
         />
       </div>
 
+      {/* Pen Name — only for poetry */}
+      {contentType === "poetry" && (
+        <div ref={penNameRef} className="relative">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Pen Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={penName}
+            onChange={(e) => {
+              setPenName(e.target.value);
+              setShowPenSuggestions(true);
+            }}
+            onFocus={() => setShowPenSuggestions(true)}
+            placeholder="Your pen name for this poem"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-bcs-accent/40 focus:border-bcs-accent transition"
+          />
+          {showPenSuggestions && filteredPenSuggestions.length > 0 && (
+            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+              <p className="px-3 py-1.5 text-[10px] text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                Previously used
+              </p>
+              {filteredPenSuggestions.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => {
+                    setPenName(name);
+                    setShowPenSuggestions(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-gray-400 mt-1">
+            This will be shown as the author instead of your real name.
+          </p>
+        </div>
+      )}
+
       {/* Excerpt */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Excerpt
+          Excerpt <span className="text-red-500">*</span>
         </label>
         <textarea
           value={excerpt}
@@ -155,28 +312,68 @@ export default function ArticleForm({
         />
       </div>
 
-      {/* Category */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Category
-        </label>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value as ArticleCategory)}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-bcs-accent/40 focus:border-bcs-accent transition"
-        >
-          {CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Category — only for articles */}
+      {contentType === "article" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Category <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as ArticleCategory)}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-bcs-accent/40 focus:border-bcs-accent transition"
+          >
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* 18+ Rating — only for poetry */}
+      {contentType === "poetry" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Age Rating <span className="text-red-500">*</span>
+          </label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setIsRated18(false)}
+              className={`flex-1 px-4 py-3 rounded-xl border text-sm font-medium transition ${
+                isRated18 === false
+                  ? "border-green-500 bg-green-50 text-green-700 ring-2 ring-green-200"
+                  : "border-gray-200 text-gray-500 hover:border-gray-300"
+              }`}
+            >
+              All Ages
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsRated18(true)}
+              className={`flex-1 px-4 py-3 rounded-xl border text-sm font-medium transition ${
+                isRated18 === true
+                  ? "border-red-500 bg-red-50 text-red-700 ring-2 ring-red-200"
+                  : "border-gray-200 text-gray-500 hover:border-gray-300"
+              }`}
+            >
+              Rated 18+
+            </button>
+          </div>
+          {isRated18 === null && (
+            <p className="text-xs text-gray-400 mt-1">
+              You must select an age rating before submitting.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Cover Image */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Cover Image
+          Cover Image <span className="text-red-500">*</span>
         </label>
         {coverImageUrl ? (
           <div className="relative rounded-xl overflow-hidden mb-2">
@@ -209,12 +406,15 @@ export default function ArticleForm({
             disabled={uploading}
           />
         </label>
+        <p className="text-xs text-gray-400 mt-1">
+          Required for submission.
+        </p>
       </div>
 
       {/* Content Editor */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Content
+          Content <span className="text-red-500">*</span>
         </label>
         <TipTapEditor content={content} onChange={setContent} />
       </div>
