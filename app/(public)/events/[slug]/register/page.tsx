@@ -1,8 +1,6 @@
 import { Metadata } from "next";
 import { supabase } from "@/lib/supabaseClient";
 import { notFound, redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import InternalRegistrationForm from "@/components/events/InternalRegistrationForm";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
@@ -65,24 +63,9 @@ export default async function EventRegisterPage({ params }: Props) {
 
   if (!event) notFound();
 
-  // Internal events require member authentication
+  // Internal events now register through the member dashboard
   if (event.is_internal || event.event_type === 'internal') {
-    const cookieStore = await cookies();
-    const authClient = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-        },
-      }
-    );
-    const { data: { user } } = await authClient.auth.getUser();
-    if (!user) {
-      redirect(`/member-login`);
-    }
+    redirect(`/dashboard/events/${slug}`);
   }
 
   // If it's a standard public event, redirect to purchase/tickets

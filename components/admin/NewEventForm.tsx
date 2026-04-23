@@ -56,10 +56,12 @@ export default function NewEventForm() {
         image_blur_data = upload.blurData ?? "";
       }
 
+      const endDate = formData.get("end_date") as string;
       const eventData = {
         title: formData.get("title"),
         description: formData.get("description"),
         date: formData.get("date"),
+        end_date: endDate || null,
         location: formData.get("location"),
         event_type: eventType,
         is_internal: eventType === "internal",
@@ -100,9 +102,10 @@ export default function NewEventForm() {
       />
       <TextArea name="description" label="Description" required />
       <div className="grid grid-cols-2 gap-4">
-        <TextInput type="date" name="date" label="Date" required />
-        <TextInput name="location" label="Venue/Location" required />
+        <TextInput type="date" name="date" label="Start Date" required />
+        <TextInput type="date" name="end_date" label="End Date (optional)" />
       </div>
+      <TextInput name="location" label="Venue/Location" required />
 
       {/* Type Selector */}
       <div className="bg-gray-50 p-4 rounded-xl space-y-4 border border-gray-100">

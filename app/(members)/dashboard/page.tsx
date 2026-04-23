@@ -122,6 +122,12 @@ export default async function MemberDashboardPage() {
               Upcoming Events
             </h2>
           </div>
+          <Link
+            href="/dashboard/events"
+            className="text-sm text-bcs-accent hover:underline"
+          >
+            View all
+          </Link>
         </div>
         {internalEvents.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
@@ -143,7 +149,7 @@ export default async function MemberDashboardPage() {
               }) => (
                 <Link
                   key={event.id}
-                  href={`/events/${event.slug}`}
+                  href={`/dashboard/events/${event.slug}`}
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition group"
                 >
                   <h3 className="font-semibold text-gray-900 group-hover:text-bcs-green transition truncate">

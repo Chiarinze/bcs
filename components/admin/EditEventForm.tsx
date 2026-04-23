@@ -72,10 +72,12 @@ export default function EditEventForm({ event }: { event: any }) {
         image_blur_data = upload.blurData;
       }
 
+      const endDate = formData.get("end_date") as string;
       const updatedData = {
         title: formData.get("title"),
         description: formData.get("description"),
         date: formData.get("date"),
+        end_date: endDate || null,
         location: formData.get("location"),
 
         // Internal Logic
@@ -127,13 +129,21 @@ export default function EditEventForm({ event }: { event: any }) {
         defaultValue={event.description}
         required
       />
-      <TextInput
-        type="date"
-        name="date"
-        label="Date"
-        defaultValue={event.date?.split("T")[0]}
-        required
-      />
+      <div className="grid grid-cols-2 gap-4">
+        <TextInput
+          type="date"
+          name="date"
+          label="Start Date"
+          defaultValue={event.date?.split("T")[0]}
+          required
+        />
+        <TextInput
+          type="date"
+          name="end_date"
+          label="End Date (optional)"
+          defaultValue={event.end_date?.split("T")[0] || ""}
+        />
+      </div>
       <TextInput
         name="location"
         label="Location"

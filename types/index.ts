@@ -3,6 +3,7 @@ export interface Event {
   title: string;
   description: string;
   date: string;
+  end_date?: string | null;
   slug: string;
   location?: string;
   is_paid: boolean;

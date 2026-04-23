@@ -167,6 +167,9 @@ export default async function EventDetail({ params }: Props) {
               <p className="mb-1">
                 <span className="font-semibold text-bcs-green">Date:</span>{" "}
                 {format(new Date(event.date), "EEEE, MMMM d, yyyy")}
+                {event.end_date && new Date(event.end_date).toDateString() !== new Date(event.date).toDateString() && (
+                  <span> — {format(new Date(event.end_date), "EEEE, MMMM d, yyyy")}</span>
+                )}
               </p>
               {event.location && (
                 <p>

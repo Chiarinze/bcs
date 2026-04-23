@@ -8,6 +8,7 @@ import { IMAGES } from "@/assets/images";
 import { createClient } from "@/lib/supabase/client";
 import {
   Home,
+  Calendar,
   FileText,
   ClipboardCheck,
   User,
@@ -19,6 +20,7 @@ import type { Profile } from "@/types";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/dashboard/events", label: "Events", icon: Calendar },
   { href: "/dashboard/articles", label: "Articles", icon: FileText },
   { href: "/dashboard/attendance", label: "Attendance", icon: ClipboardCheck },
   { href: "/dashboard/profile", label: "Profile", icon: User },
