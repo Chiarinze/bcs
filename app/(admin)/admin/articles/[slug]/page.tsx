@@ -333,7 +333,7 @@ export default function AdminArticleDetailPage() {
                   <div>
                     <span className="text-gray-400 text-xs uppercase tracking-wider">Content Preview</span>
                     <div
-                      className="prose prose-sm max-w-none mt-1 max-h-60 overflow-y-auto border border-gray-100 rounded-lg p-3"
+                      className="prose prose-sm max-w-none prose-p:my-1 mt-1 max-h-60 overflow-y-auto border border-gray-100 rounded-lg p-3"
                       dangerouslySetInnerHTML={{ __html: edit.content }}
                     />
                   </div>
@@ -409,7 +409,7 @@ export default function AdminArticleDetailPage() {
             Content Preview
           </h3>
           <div
-            className="prose prose-lg max-w-none prose-headings:font-serif prose-headings:text-gray-900 prose-a:text-bcs-accent prose-img:rounded-xl prose-blockquote:border-bcs-green/30"
+            className="prose prose-lg max-w-none prose-p:my-1 prose-headings:font-serif prose-headings:text-gray-900 prose-a:text-bcs-accent prose-img:rounded-xl prose-blockquote:border-bcs-green/30"
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
         </div>

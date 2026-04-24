@@ -184,11 +184,15 @@ export interface ArticleWithAuthor extends Article {
 export interface ArticleComment {
   id: string;
   article_id: string;
-  user_id: string;
+  user_id: string | null;
+  guest_name: string | null;
+  parent_id: string | null;
   content: string;
   created_at: string;
   updated_at: string;
-  user?: Pick<Profile, "first_name" | "last_name" | "photo_url">;
+  user?: Pick<Profile, "first_name" | "last_name" | "photo_url"> | null;
+  // Present only in the POST response to the guest author so they can store it locally
+  guest_token?: string;
 }
 
 // ========== Grant Opportunity Types ==========

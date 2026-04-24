@@ -61,7 +61,7 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose-base max-w-none min-h-[300px] px-4 py-3 focus:outline-none",
+          "prose prose-sm sm:prose-base prose-p:my-1 max-w-none min-h-[300px] px-4 py-3 focus:outline-none",
       },
     },
   });

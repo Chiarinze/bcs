@@ -5,11 +5,13 @@ import type { ArticleWithAuthor } from "@/types";
 
 export default function ArticleCard({
   article,
+  basePath = "/articles",
 }: {
   article: ArticleWithAuthor;
+  basePath?: string;
 }) {
   return (
-    <Link href={`/articles/${article.slug}`} className="group block h-full">
+    <Link href={`${basePath}/${article.slug}`} className="group block h-full">
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover-lift h-full flex flex-col">
         {/* Cover Image — fixed aspect ratio */}
         <div className="aspect-[16/9] relative bg-gray-100 flex-shrink-0">
