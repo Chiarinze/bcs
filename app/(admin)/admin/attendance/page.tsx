@@ -2,7 +2,7 @@ import Link from "next/link";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import type { AttendanceSession } from "@/types";
-import { Calendar, ChevronRight, User } from "lucide-react";
+import { Calendar, ChevronRight, Clock, User } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ export default async function AdminAttendancePage() {
   const { data } = await supabase
     .from("attendance_sessions")
     .select(
-      "*, taker:profiles!taken_by(first_name, last_name, photo_url)"
+      "*, taker:profiles!taken_by(first_name, last_name, photo_url), event:events(id, title, slug)"
     )
     .order("session_date", { ascending: false });
 
@@ -92,7 +92,18 @@ export default async function AdminAttendancePage() {
                           </span>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {session.title || "Attendance"}
+                            </p>
+                            {session.has_timestamp && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-full">
+                                <Clock className="w-3 h-3" />
+                                Timestamped
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500">
                             {formatDate(session.session_date)}
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5">

@@ -121,10 +121,14 @@ export type AttendanceStatus = "present" | "absent_with_permission" | "absent";
 export interface AttendanceSession {
   id: string;
   session_date: string;
+  title: string;
+  event_id: string | null;
+  has_timestamp: boolean;
   taken_by: string;
   signature: string;
   created_at: string;
   taker?: Pick<Profile, "first_name" | "last_name" | "photo_url"> | null;
+  event?: Pick<Event, "id" | "title" | "slug"> | null;
 }
 
 export interface AttendanceRecord {
@@ -133,6 +137,7 @@ export interface AttendanceRecord {
   member_id: string;
   status: AttendanceStatus;
   note: string | null;
+  marked_at: string | null;
   member?: Pick<Profile, "id" | "first_name" | "last_name" | "photo_url" | "ensemble_arm" | "choir_part"> | null;
 }
 

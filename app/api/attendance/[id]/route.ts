@@ -6,7 +6,7 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-// GET: get attendance session details with all records
+// GET: attendance session details with all records (plus edit permission flag)
 export async function GET(_req: NextRequest, { params }: Props) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
@@ -14,10 +14,11 @@ export async function GET(_req: NextRequest, { params }: Props) {
   const { id } = await params;
   const supabase = createServerSupabase();
 
-  // Fetch session
   const { data: session, error: sessionError } = await supabase
     .from("attendance_sessions")
-    .select("*, taker:profiles!taken_by(first_name, last_name, photo_url)")
+    .select(
+      "*, taker:profiles!taken_by(first_name, last_name, photo_url), event:events(id, title, slug)"
+    )
     .eq("id", id)
     .single();
 
@@ -25,10 +26,11 @@ export async function GET(_req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
-  // Fetch records with member info
   const { data: records, error: recordsError } = await supabase
     .from("attendance_records")
-    .select("*, member:profiles!member_id(id, first_name, last_name, photo_url, ensemble_arm, choir_part)")
+    .select(
+      "*, member:profiles!member_id(id, first_name, last_name, photo_url, ensemble_arm, choir_part)"
+    )
     .eq("session_id", id)
     .order("status");
 
@@ -36,20 +38,213 @@ export async function GET(_req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: recordsError.message }, { status: 500 });
   }
 
+  // Determine edit permission: original taker OR admin
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", auth.id)
+    .single();
+  const canEdit = session.taken_by === auth.id || profile?.role === "admin";
+
   return NextResponse.json({
     session,
     records: records || [],
+    canEdit,
   });
 }
 
-// GET reports: /api/attendance/reports?type=monthly&month=2026-04 or type=yearly&year=2026
+// PUT: edit an existing attendance session. Only the original taker or an admin may edit.
+export async function PUT(req: NextRequest, { params }: Props) {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
+  const { id } = await params;
+  const supabase = createServerSupabase();
+
+  // Fetch session and verify permission
+  const { data: session, error: sessionError } = await supabase
+    .from("attendance_sessions")
+    .select("id, taken_by, has_timestamp, title")
+    .eq("id", id)
+    .single();
+
+  if (sessionError || !session) {
+    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", auth.id)
+    .single();
+  const isAdmin = profile?.role === "admin";
+  const isTaker = session.taken_by === auth.id;
+
+  if (!isAdmin && !isTaker) {
+    return NextResponse.json(
+      { error: "Only the original taker or an admin can edit this attendance" },
+      { status: 403 }
+    );
+  }
+
+  const body = await req.json();
+  const {
+    title,
+    has_timestamp,
+    present,
+    absent_with_permission,
+  } = body;
+
+  // Optional title rename
+  const sessionUpdate: {
+    title?: string;
+    has_timestamp?: boolean;
+  } = {};
+
+  if (typeof title === "string") {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      return NextResponse.json({ error: "Attendance name is required" }, { status: 400 });
+    }
+    sessionUpdate.title = trimmed;
+  }
+
+  if (typeof has_timestamp === "boolean") {
+    sessionUpdate.has_timestamp = has_timestamp;
+  }
+
+  const effectiveHasTimestamp =
+    typeof has_timestamp === "boolean" ? has_timestamp : session.has_timestamp;
+
+  if (Object.keys(sessionUpdate).length > 0) {
+    const { error: updateError } = await supabase
+      .from("attendance_sessions")
+      .update(sessionUpdate)
+      .eq("id", id);
+
+    if (updateError) {
+      if (updateError.code === "23505") {
+        return NextResponse.json(
+          { error: "Another attendance with this name already exists for this date" },
+          { status: 409 }
+        );
+      }
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+  }
+
+  // Load existing records so we can preserve marked_at when status doesn't change
+  const { data: existingRecords } = await supabase
+    .from("attendance_records")
+    .select("member_id, status, marked_at")
+    .eq("session_id", id);
+
+  const existingMap = new Map<
+    string,
+    { status: string; marked_at: string | null }
+  >();
+  for (const r of existingRecords || []) {
+    existingMap.set(r.member_id, { status: r.status, marked_at: r.marked_at });
+  }
+
+  const presentMap = new Map<string, string | null>();
+  if (Array.isArray(present)) {
+    for (const entry of present) {
+      if (typeof entry === "string") {
+        presentMap.set(entry, null);
+      } else if (entry && typeof entry.member_id === "string") {
+        presentMap.set(
+          entry.member_id,
+          effectiveHasTimestamp && entry.marked_at ? entry.marked_at : null
+        );
+      }
+    }
+  }
+
+  const absentWithPermMap = new Map<string, string>();
+  if (Array.isArray(absent_with_permission)) {
+    for (const entry of absent_with_permission) {
+      absentWithPermMap.set(entry.member_id, entry.note || "");
+    }
+  }
+
+  // Load all member IDs (profile_completed) to rebuild the full roster
+  const { data: allMembers } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("role", "member")
+    .eq("profile_completed", true);
+
+  if (!allMembers || allMembers.length === 0) {
+    return NextResponse.json({ error: "No members found" }, { status: 400 });
+  }
+
+  type RecordUpsert = {
+    session_id: string;
+    member_id: string;
+    status: string;
+    note: string | null;
+    marked_at: string | null;
+  };
+
+  const rows: RecordUpsert[] = allMembers.map((m: { id: string }) => {
+    let status: string = "absent";
+    let note: string | null = null;
+    let marked_at: string | null = null;
+
+    if (presentMap.has(m.id)) {
+      status = "present";
+      const clientStamp = presentMap.get(m.id) || null;
+      const prior = existingMap.get(m.id);
+      if (effectiveHasTimestamp) {
+        // Preserve existing marked_at if member was already present and no new stamp supplied
+        if (prior?.status === "present" && prior.marked_at && !clientStamp) {
+          marked_at = prior.marked_at;
+        } else {
+          marked_at = clientStamp;
+        }
+      } else {
+        marked_at = null;
+      }
+    } else if (absentWithPermMap.has(m.id)) {
+      status = "absent_with_permission";
+      note = absentWithPermMap.get(m.id) || null;
+    }
+
+    return {
+      session_id: id,
+      member_id: m.id,
+      status,
+      note,
+      marked_at,
+    };
+  });
+
+  const { error: upsertError } = await supabase
+    .from("attendance_records")
+    .upsert(rows, { onConflict: "session_id,member_id" });
+
+  if (upsertError) {
+    return NextResponse.json({ error: upsertError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    session_id: id,
+    total: allMembers.length,
+    present: presentMap.size,
+    absent_with_permission: absentWithPermMap.size,
+    absent: allMembers.length - presentMap.size - absentWithPermMap.size,
+  });
+}
+
+// Reports discriminator (unchanged)
 export async function POST(req: NextRequest, { params }: Props) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
   const { id } = await params;
 
-  // "id" is used as a special endpoint discriminator: "reports"
   if (id !== "reports") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -59,7 +254,6 @@ export async function POST(req: NextRequest, { params }: Props) {
   const { type, month, year } = body;
 
   if (type === "monthly" && month) {
-    // Get all sessions in the month
     const { data: sessions } = await supabase
       .from("attendance_sessions")
       .select("id")
@@ -72,7 +266,6 @@ export async function POST(req: NextRequest, { params }: Props) {
 
     const sessionIds = sessions.map((s: { id: string }) => s.id);
 
-    // Get all records for these sessions
     const { data: records } = await supabase
       .from("attendance_records")
       .select("member_id, status, member:profiles!member_id(first_name, last_name, photo_url)")
@@ -82,7 +275,6 @@ export async function POST(req: NextRequest, { params }: Props) {
       return NextResponse.json({ sessions: sessions.length, members: [] });
     }
 
-    // Aggregate per member
     const memberMap = new Map<string, {
       member_id: string;
       first_name: string;
@@ -115,7 +307,6 @@ export async function POST(req: NextRequest, { params }: Props) {
       else entry.absent++;
     }
 
-    // Sort by most present
     const members = Array.from(memberMap.values()).sort(
       (a, b) => b.present - a.present || a.absent - b.absent
     );
