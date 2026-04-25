@@ -25,6 +25,7 @@ interface EventDetail {
   image_url?: string | null;
   image_blur_data?: string | null;
   event_type?: string;
+  registration_closed?: boolean;
 }
 
 interface EventDocument {
@@ -73,7 +74,7 @@ export default function MemberEventDetailPage() {
       // Fetch event
       const { data: eventData } = await supabase
         .from("events")
-        .select("id, title, description, date, end_date, slug, location, image_url, image_blur_data, event_type")
+        .select("id, title, description, date, end_date, slug, location, image_url, image_blur_data, event_type, registration_closed")
         .eq("slug", slug)
         .eq("is_internal", true)
         .single();
@@ -226,6 +227,15 @@ export default function MemberEventDetailPage() {
                   Check your email for event details
                 </p>
               </div>
+            </div>
+          ) : event.registration_closed ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <p className="text-sm font-semibold text-red-800">
+                Registration is closed
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                The administrator has closed registration for this event.
+              </p>
             </div>
           ) : showConfirm ? (
             <div className="text-center space-y-4">

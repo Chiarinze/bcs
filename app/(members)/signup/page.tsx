@@ -185,6 +185,7 @@ export default function SignupPage() {
             >
               <option value="full_member">Full Member</option>
               <option value="probationary">Probationary Member</option>
+              <option value="it_student">IT Student (Industrial Training)</option>
             </select>
           </div>
 

@@ -18,6 +18,30 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const supabase = createServerSupabase();
+
+    // Block even after payment if the event has registration closed.
+    // Admin should close the /purchase page first to avoid reaching this state.
+    const { data: event } = await supabase
+      .from("events")
+      .select("registration_closed")
+      .eq("id", event_id)
+      .single();
+
+    if (!event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    if (event.registration_closed) {
+      return NextResponse.json(
+        {
+          error:
+            "Registration for this event has been closed. If you have been charged, please contact the administrator for a refund.",
+        },
+        { status: 403 }
+      );
+    }
+
     const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
     if (!PAYSTACK_SECRET_KEY)
       throw new Error("PAYSTACK_SECRET_KEY not set in environment");
@@ -41,8 +65,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = createServerSupabase();
 
     // Record ticket
     const { error: insertError } = await supabase.from("tickets").insert([

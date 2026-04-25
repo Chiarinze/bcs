@@ -20,6 +20,9 @@ export default function EditEventForm({ event }: { event: any }) {
   // New State
   const [isInternal, setIsInternal] = useState(event.is_internal || false);
   const [isPaid, setIsPaid] = useState(event.is_paid || false);
+  const [registrationClosed, setRegistrationClosed] = useState(
+    event.registration_closed || false,
+  );
 
   const router = useRouter();
 
@@ -83,6 +86,8 @@ export default function EditEventForm({ event }: { event: any }) {
         // Internal Logic
         is_internal: isInternal,
         is_paid: isInternal ? false : isPaid, // Reset paid if switching to internal
+
+        registration_closed: registrationClosed,
 
         image_url,
         image_blur_data,
@@ -178,8 +183,22 @@ export default function EditEventForm({ event }: { event: any }) {
               <span className="text-gray-700">Paid Public Event</span>
             </label>
           )}
-        </div>
 
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={registrationClosed}
+              onChange={(e) => setRegistrationClosed(e.target.checked)}
+              className="h-4 w-4 text-bcs-green rounded border-gray-300 focus:ring-bcs-accent"
+            />
+            <span className="text-gray-700">Close registration</span>
+          </label>
+        </div>
+        {registrationClosed && (
+          <p className="text-xs text-red-600">
+            Nobody will be able to register or buy tickets while this is checked.
+          </p>
+        )}
       </div>
 
       {/* Ticket Categories - Only show if NOT Internal */}

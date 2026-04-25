@@ -43,7 +43,7 @@ export default function MemberLoginPage() {
     // Check if the account is verified by admin
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("is_verified, profile_completed, role")
+      .select("is_verified, profile_completed, role, closed_at")
       .eq("id", authData.user.id)
       .single();
 
@@ -52,6 +52,13 @@ export default function MemberLoginPage() {
       setError("Unable to load your profile. Please contact support.");
       await supabase.auth.signOut();
       setLoading(false);
+      return;
+    }
+
+    // Closed accounts cannot log in
+    if (profile.closed_at) {
+      await supabase.auth.signOut();
+      router.push("/account-closed");
       return;
     }
 

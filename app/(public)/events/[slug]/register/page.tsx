@@ -57,7 +57,7 @@ export default async function EventRegisterPage({ params }: Props) {
   // Fetch event details
   const { data: event } = await supabase
     .from("events")
-    .select("id, title, is_internal, event_type")
+    .select("id, title, is_internal, event_type, registration_closed")
     .eq("slug", slug)
     .single();
 
@@ -78,6 +78,27 @@ export default async function EventRegisterPage({ params }: Props) {
             </Link>
         </div>
      )
+  }
+
+  if (event.registration_closed) {
+    return (
+      <section className="py-16 md:py-24 bg-[#F9F9F7] px-4">
+        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm p-8 text-center">
+          <h1 className="text-2xl font-serif text-bcs-green mb-3">{event.title}</h1>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-6">
+            <h2 className="text-lg font-semibold text-red-800 mb-1">
+              Registration is closed
+            </h2>
+            <p className="text-sm text-red-700">
+              The administrator has closed registration for this event.
+            </p>
+          </div>
+          <Link href={`/events/${slug}`}>
+            <Button variant="outline">Back to Event</Button>
+          </Link>
+        </div>
+      </section>
+    );
   }
 
   return (

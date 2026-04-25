@@ -13,6 +13,7 @@ export interface Event {
   created_at?: string;
   is_internal?: boolean;
   event_type?: "standard" | "internal" | "audition";
+  registration_closed?: boolean;
 }
 
 export interface Ticket {
@@ -45,7 +46,7 @@ export interface TicketCategory {
 
 // ========== Member / Profile Types ==========
 
-export type MembershipStatus = "full_member" | "probationary";
+export type MembershipStatus = "full_member" | "probationary" | "it_student";
 export type EnsembleArm = "choir" | "orchestra" | "choir_orchestra" | "choir_band" | "orchestra_band" | "choir_orchestra_band";
 export type UserRole = "admin" | "member";
 
@@ -67,6 +68,8 @@ export interface Profile {
   photo_url: string | null;
   year_inducted: number | null;
   membership_id: string | null;
+  closed_at: string | null;
+  closure_reason: string | null;
   created_at: string;
 }
 

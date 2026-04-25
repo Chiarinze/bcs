@@ -65,10 +65,11 @@ export default function AuditionRegistrationForm({ eventId }: Props) {
         data: { publicUrl },
       } = supabase.storage.from("passports").getPublicUrl(fileName);
 
-      // 2. Submit to audition_registrations table
-      const { error: dbError } = await supabase
-        .from("audition_registrations")
-        .insert({
+      // 2. Submit to server-side audition endpoint (enforces registration_closed)
+      const res = await fetch("/api/auditions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           event_id: eventId,
           first_name: formData.get("first_name"),
           last_name: formData.get("last_name"),
@@ -88,9 +89,13 @@ export default function AuditionRegistrationForm({ eventId }: Props) {
           photo_url: publicUrl,
           preferred_time: formData.get("preferred_time"),
           attestation: formData.get("attestation") === "on",
-        });
+        }),
+      });
 
-      if (dbError) throw dbError;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Registration failed.");
+      }
       setSuccess(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {

@@ -44,11 +44,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No members found" }, { status: 404 });
   }
 
-  // Validate all members are eligible
+  // Validate all members are eligible — verified, probationary or IT student, no existing ID
   const ineligible = members.filter(
     (m: { is_verified: boolean; membership_status: string; membership_id: string | null }) =>
       !m.is_verified ||
-      m.membership_status !== "probationary" ||
+      (m.membership_status !== "probationary" && m.membership_status !== "it_student") ||
       m.membership_id !== null
   );
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     const names = ineligible.map((m: { first_name: string }) => m.first_name).join(", ");
     return NextResponse.json(
       {
-        error: `The following members are not eligible for promotion: ${names}. Members must be verified probationary members without an existing membership ID.`,
+        error: `The following members are not eligible for promotion: ${names}. Members must be verified probationary or IT student members without an existing membership ID.`,
       },
       { status: 400 }
     );

@@ -30,6 +30,24 @@ export async function POST(req: NextRequest) {
 
     const supabase = createServerSupabase();
 
+    // Block free registration when the event has registration closed
+    const { data: event } = await supabase
+      .from("events")
+      .select("registration_closed")
+      .eq("id", event_id)
+      .single();
+
+    if (!event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    if (event.registration_closed) {
+      return NextResponse.json(
+        { error: "Registration is closed for this event." },
+        { status: 403 }
+      );
+    }
+
     // ✅ Create the ticket
     const { error: insertError } = await supabase.from("tickets").insert([
       {

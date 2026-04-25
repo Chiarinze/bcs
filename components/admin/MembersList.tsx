@@ -13,6 +13,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
+  Lock,
+  Unlock,
+  GraduationCap,
 } from "lucide-react";
 import type { Profile, MembershipStatus } from "@/types";
 
@@ -171,9 +174,70 @@ export default function MembersList({
   const promotableMembers = members.filter(
     (m) =>
       m.is_verified &&
-      m.membership_status === "probationary" &&
+      !m.closed_at &&
+      (m.membership_status === "probationary" ||
+        m.membership_status === "it_student") &&
       !m.membership_id,
   );
+
+  async function handleCloseAccount(memberId: string) {
+    if (
+      !confirm(
+        "Close this account? The member will receive an email and will be unable to log in. Account will auto-delete in 30 days unless reopened.",
+      )
+    )
+      return;
+
+    setActionLoading(memberId);
+    const res = await fetch(`/api/members/${memberId}/close`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Failed to close account");
+    }
+    setActionLoading(null);
+  }
+
+  async function handleReopenAccount(memberId: string) {
+    setActionLoading(memberId);
+    const res = await fetch(`/api/members/${memberId}/reopen`, {
+      method: "POST",
+    });
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Failed to reopen account");
+    }
+    setActionLoading(null);
+  }
+
+  async function handleMakeProbationary(memberId: string) {
+    if (
+      !confirm(
+        "Change this IT student's status to Probationary Member?",
+      )
+    )
+      return;
+    setActionLoading(memberId);
+    const res = await fetch(`/api/members/${memberId}/set-status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ membership_status: "probationary" }),
+    });
+    if (res.ok) {
+      router.refresh();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Failed to update status");
+    }
+    setActionLoading(null);
+  }
 
   function formatYearJoined(member: Profile): string {
     if (member.membership_status === "full_member" && member.year_inducted) {
@@ -379,6 +443,9 @@ export default function MembersList({
                     }
                     onReject={() => handleVerify(member.id, "reject")}
                     onPromote={() => handlePromote(member.id)}
+                    onCloseAccount={() => handleCloseAccount(member.id)}
+                    onReopenAccount={() => handleReopenAccount(member.id)}
+                    onMakeProbationary={() => handleMakeProbationary(member.id)}
                     promoteYear={promoteYear[member.id] || ""}
                     onPromoteYearChange={(y) =>
                       setPromoteYear((prev) => ({ ...prev, [member.id]: y }))
@@ -408,6 +475,9 @@ export default function MembersList({
                 }
                 onReject={() => handleVerify(member.id, "reject")}
                 onPromote={() => handlePromote(member.id)}
+                onCloseAccount={() => handleCloseAccount(member.id)}
+                onReopenAccount={() => handleReopenAccount(member.id)}
+                onMakeProbationary={() => handleMakeProbationary(member.id)}
                 promoteYear={promoteYear[member.id] || ""}
                 onPromoteYearChange={(y) =>
                   setPromoteYear((prev) => ({ ...prev, [member.id]: y }))
@@ -491,6 +561,9 @@ function MemberRow({
   onApprove,
   onReject,
   onPromote,
+  onCloseAccount,
+  onReopenAccount,
+  onMakeProbationary,
   promoteYear,
   onPromoteYearChange,
   showCheckbox,
@@ -503,6 +576,9 @@ function MemberRow({
   onApprove: (status?: MembershipStatus) => void;
   onReject: () => void;
   onPromote: () => void;
+  onCloseAccount: () => void;
+  onReopenAccount: () => void;
+  onMakeProbationary: () => void;
   promoteYear: string;
   onPromoteYearChange: (year: string) => void;
   showCheckbox: boolean;
@@ -514,10 +590,26 @@ function MemberRow({
 
   const canPromote =
     member.is_verified &&
-    member.membership_status === "probationary" &&
+    !member.closed_at &&
+    (member.membership_status === "probationary" ||
+      member.membership_status === "it_student") &&
     !member.membership_id;
   const isStatusLocked =
-    member.is_verified && member.membership_status === "full_member";
+    member.is_verified &&
+    member.membership_status === "full_member" &&
+    !member.closed_at;
+  const isItStudent = member.membership_status === "it_student";
+  const isClosed = !!member.closed_at;
+  const daysUntilDeletion = isClosed
+    ? Math.max(
+        0,
+        30 -
+          Math.floor(
+            (Date.now() - new Date(member.closed_at!).getTime()) /
+              (24 * 60 * 60 * 1000),
+          ),
+      )
+    : 0;
 
   const initials =
     `${member.first_name[0]}${member.last_name[0]}`.toUpperCase();
@@ -556,9 +648,15 @@ function MemberRow({
       <td className="px-5 py-4">
         <div className="flex flex-col gap-1">
           <StatusBadge status={member.membership_status} />
-          {member.is_verified && (
+          {member.is_verified && !isClosed && (
             <span className="inline-flex items-center gap-1 text-[11px] text-green-700 font-medium">
               <BadgeCheck className="w-3 h-3" /> Verified
+            </span>
+          )}
+          {isClosed && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-red-700 font-medium bg-red-50 px-1.5 py-0.5 rounded-full">
+              <Lock className="w-3 h-3" /> Closed • {daysUntilDeletion}d to
+              deletion
             </span>
           )}
           {isStatusLocked && (
@@ -630,13 +728,47 @@ function MemberRow({
                 disabled={isLoading}
                 onClick={onPromote}
                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-bcs-green/10 text-bcs-green text-xs font-medium hover:bg-bcs-green/20 disabled:opacity-50 transition"
+                title="Promote to Full Member"
               >
-                <ArrowUpCircle className="w-3.5 h-3.5" /> Promote
+                <ArrowUpCircle className="w-3.5 h-3.5" /> Full Member
               </button>
             </div>
           )}
 
-          {isStatusLocked && (
+          {member.is_verified && isItStudent && !isClosed && (
+            <button
+              disabled={isLoading}
+              onClick={onMakeProbationary}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 disabled:opacity-50 transition"
+              title="Change to Probationary"
+            >
+              <GraduationCap className="w-3.5 h-3.5" /> Probationary
+            </button>
+          )}
+
+          {member.is_verified && isItStudent && !isClosed && (
+            <button
+              disabled={isLoading}
+              onClick={onCloseAccount}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 text-xs font-medium hover:bg-red-100 disabled:opacity-50 transition"
+              title="Close Account"
+            >
+              <Lock className="w-3.5 h-3.5" /> Close
+            </button>
+          )}
+
+          {isClosed && (
+            <button
+              disabled={isLoading}
+              onClick={onReopenAccount}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-medium hover:bg-green-100 disabled:opacity-50 transition"
+              title="Reopen Account"
+            >
+              <Unlock className="w-3.5 h-3.5" /> Reopen
+            </button>
+          )}
+
+          {isStatusLocked && !isClosed && (
             <span className="text-xs text-gray-400 italic">
               No actions available
             </span>
@@ -656,6 +788,9 @@ function MemberCard({
   onApprove,
   onReject,
   onPromote,
+  onCloseAccount,
+  onReopenAccount,
+  onMakeProbationary,
   promoteYear,
   onPromoteYearChange,
   isExpanded,
@@ -670,6 +805,9 @@ function MemberCard({
   onApprove: (status?: MembershipStatus) => void;
   onReject: () => void;
   onPromote: () => void;
+  onCloseAccount: () => void;
+  onReopenAccount: () => void;
+  onMakeProbationary: () => void;
   promoteYear: string;
   onPromoteYearChange: (year: string) => void;
   isExpanded: boolean;
@@ -682,9 +820,27 @@ function MemberCard({
   );
   const canPromote =
     member.is_verified &&
-    member.membership_status === "probationary" &&
+    !member.closed_at &&
+    (member.membership_status === "probationary" ||
+      member.membership_status === "it_student") &&
     !member.membership_id;
-  const hasActions = !member.is_verified || canPromote;
+  const isItStudent = member.membership_status === "it_student";
+  const isClosed = !!member.closed_at;
+  const daysUntilDeletion = isClosed
+    ? Math.max(
+        0,
+        30 -
+          Math.floor(
+            (Date.now() - new Date(member.closed_at!).getTime()) /
+              (24 * 60 * 60 * 1000),
+          ),
+      )
+    : 0;
+  const hasActions =
+    !member.is_verified ||
+    canPromote ||
+    (member.is_verified && isItStudent && !isClosed) ||
+    isClosed;
   const initials =
     `${member.first_name[0]}${member.last_name[0]}`.toUpperCase();
 
@@ -722,9 +878,14 @@ function MemberCard({
       {/* Badges Row */}
       <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
         <StatusBadge status={member.membership_status} />
-        {member.is_verified && (
+        {member.is_verified && !isClosed && (
           <span className="inline-flex items-center gap-1 text-[11px] text-green-700 font-medium bg-green-50 px-2 py-0.5 rounded-full">
             <BadgeCheck className="w-3 h-3" /> Verified
+          </span>
+        )}
+        {isClosed && (
+          <span className="inline-flex items-center gap-1 text-[11px] text-red-700 font-medium bg-red-50 px-2 py-0.5 rounded-full">
+            <Lock className="w-3 h-3" /> Closed • {daysUntilDeletion}d left
           </span>
         )}
         {member.membership_id && (
@@ -801,6 +962,49 @@ function MemberCard({
               </div>
             </div>
           )}
+
+          {member.is_verified && isItStudent && !isClosed && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                After IT
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  disabled={isLoading}
+                  onClick={onMakeProbationary}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 text-amber-700 text-sm font-medium hover:bg-amber-100 disabled:opacity-50 transition"
+                >
+                  <GraduationCap className="w-4 h-4" /> Make Probationary
+                </button>
+                <button
+                  disabled={isLoading}
+                  onClick={onCloseAccount}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 text-red-700 text-sm font-medium hover:bg-red-100 disabled:opacity-50 transition"
+                >
+                  <Lock className="w-4 h-4" /> Close Account
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isClosed && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Closed account
+              </p>
+              <p className="text-xs text-gray-500">
+                Auto-deletion in <strong>{daysUntilDeletion}</strong>{" "}
+                {daysUntilDeletion === 1 ? "day" : "days"}.
+              </p>
+              <button
+                disabled={isLoading}
+                onClick={onReopenAccount}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 disabled:opacity-50 transition"
+              >
+                <Unlock className="w-4 h-4" /> Reopen Account
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -809,14 +1013,29 @@ function MemberCard({
 
 /* ─── Status Badge ─── */
 function StatusBadge({ status }: { status: MembershipStatus }) {
-  const isFullMember = status === "full_member";
+  const config: Record<
+    MembershipStatus,
+    { label: string; className: string }
+  > = {
+    full_member: {
+      label: "Full Member",
+      className: "bg-blue-50 text-blue-700",
+    },
+    probationary: {
+      label: "Probationary",
+      className: "bg-amber-50 text-amber-700",
+    },
+    it_student: {
+      label: "IT Student",
+      className: "bg-purple-50 text-purple-700",
+    },
+  };
+  const { label, className } = config[status];
   return (
     <span
-      className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-        isFullMember ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
-      }`}
+      className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${className}`}
     >
-      {isFullMember ? "Full Member" : "Probationary"}
+      {label}
     </span>
   );
 }

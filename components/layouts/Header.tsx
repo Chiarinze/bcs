@@ -82,7 +82,7 @@ export const Header = () => {
               {item.name}
             </Link>
           ))}
-          {/* <Link
+          <Link
             href="/member-login"
             className={clsx(
               "text-sm font-medium transition-colors",
@@ -92,7 +92,7 @@ export const Header = () => {
             )}
           >
             Members
-          </Link> */}
+          </Link>
           <Link
             href="/donate"
             className={clsx(

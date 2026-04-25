@@ -45,7 +45,7 @@ export async function POST(_req: NextRequest, { params }: Props) {
   // Get event
   const { data: event } = await supabase
     .from("events")
-    .select("id, is_internal")
+    .select("id, is_internal, registration_closed")
     .eq("slug", slug)
     .single();
 
@@ -55,6 +55,13 @@ export async function POST(_req: NextRequest, { params }: Props) {
 
   if (!event.is_internal) {
     return NextResponse.json({ error: "This is not an internal event" }, { status: 400 });
+  }
+
+  if (event.registration_closed) {
+    return NextResponse.json(
+      { error: "Registration is closed for this event." },
+      { status: 403 }
+    );
   }
 
   // Get member profile (only select columns that exist in the profiles table)

@@ -139,7 +139,11 @@ export default async function EventDetail({ params }: Props) {
 
             {/* Action Button */}
             <div className="mt-4 md:mt-0">
-              {event.event_type === "audition" ? (
+              {event.registration_closed ? (
+                <span className="inline-flex items-center px-6 py-2.5 rounded-full bg-gray-100 text-gray-500 text-sm font-medium">
+                  Registration Closed
+                </span>
+              ) : event.event_type === "audition" ? (
                 <Link href={`/events/${event.slug}/register`}>
                   <Button className="px-6 py-2.5 bg-bcs-green hover:bg-bcs-accent rounded-full">
                     Register for Audition
@@ -246,8 +250,24 @@ export default async function EventDetail({ params }: Props) {
             </div>
           )}
 
+          {/* Registration Closed Notice */}
+          {event.registration_closed && (
+            <div className="border-t border-gray-100 pt-8 mt-8">
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
+                <h2 className="text-lg font-semibold text-red-800 mb-1">
+                  Registration is closed
+                </h2>
+                <p className="text-sm text-red-700">
+                  The administrator has closed registration for this event. Please
+                  check back later or contact us for more information.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Ticket Categories */}
-          {!event.is_internal &&
+          {!event.registration_closed &&
+            !event.is_internal &&
             event.is_paid &&
             categories &&
             categories.length > 0 && (
@@ -295,7 +315,7 @@ export default async function EventDetail({ params }: Props) {
             )}
 
           {/* Free Registration Section */}
-          {!event.is_internal && !event.is_paid && !isAudition && (
+          {!event.registration_closed && !event.is_internal && !event.is_paid && !isAudition && (
             <div className="border-t border-gray-100 pt-8 mt-8">
               <h2 className="text-2xl font-serif text-bcs-green mb-4">
                 Free Registration
@@ -313,7 +333,7 @@ export default async function EventDetail({ params }: Props) {
           )}
 
           {/* Internal Event Info Box */}
-          {event.is_internal && (
+          {!event.registration_closed && event.is_internal && (
             <div className="border-t border-gray-100 pt-8 mt-8">
               <h2 className="text-2xl font-serif text-bcs-green mb-4">
                 Member Registration

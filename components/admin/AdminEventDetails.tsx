@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Lock, Unlock } from "lucide-react";
 import Button from "@/components/ui/Button";
 import EventOverview from "./event-details/EventOverview";
 import AttendeesSection from "./event-details/AttendeesSection";
@@ -18,6 +20,10 @@ interface Props {
 
 export default function AdminEventDetails({ event, totalTickets, categories, codes }: Props) {
   const router = useRouter();
+  const [registrationClosed, setRegistrationClosed] = useState<boolean>(
+    !!event.registration_closed,
+  );
+  const [togglingReg, setTogglingReg] = useState(false);
 
   async function handleDelete() {
     if (!confirm("Are you sure you want to delete this event?")) return;
@@ -28,6 +34,33 @@ export default function AdminEventDetails({ event, totalTickets, categories, cod
       router.refresh();
     } catch (err) {
       alert((err as Error).message);
+    }
+  }
+
+  async function handleToggleRegistration() {
+    const next = !registrationClosed;
+    const confirmMsg = next
+      ? "Close registration? Nobody will be able to register or buy a ticket until you reopen it."
+      : "Reopen registration? Members and the public will be able to register again.";
+    if (!confirm(confirmMsg)) return;
+
+    setTogglingReg(true);
+    try {
+      const res = await fetch(`/api/events/${event.slug}/registration`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ closed: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to update registration status");
+      }
+      setRegistrationClosed(next);
+      router.refresh();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setTogglingReg(false);
     }
   }
 
@@ -51,6 +84,54 @@ export default function AdminEventDetails({ event, totalTickets, categories, cod
             Delete
           </Button>
         </div>
+      </div>
+
+      {/* Registration Toggle */}
+      <div
+        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border p-5 ${
+          registrationClosed
+            ? "bg-red-50 border-red-200"
+            : "bg-green-50 border-green-200"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              registrationClosed ? "bg-red-100" : "bg-green-100"
+            }`}
+          >
+            {registrationClosed ? (
+              <Lock className="w-5 h-5 text-red-600" />
+            ) : (
+              <Unlock className="w-5 h-5 text-green-600" />
+            )}
+          </div>
+          <div>
+            <p
+              className={`font-semibold ${
+                registrationClosed ? "text-red-800" : "text-green-800"
+              }`}
+            >
+              Registration is {registrationClosed ? "closed" : "open"}
+            </p>
+            <p className="text-sm text-gray-600 mt-0.5">
+              {registrationClosed
+                ? "Nobody can register or buy tickets for this event."
+                : "Anyone eligible can register or buy tickets."}
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={handleToggleRegistration}
+          loading={togglingReg}
+          className={
+            registrationClosed
+              ? "bg-green-600 hover:bg-green-700 text-white"
+              : "bg-red-600 hover:bg-red-700 text-white"
+          }
+        >
+          {registrationClosed ? "Reopen Registration" : "Close Registration"}
+        </Button>
       </div>
 
       <EventOverview event={event} totalTickets={totalTickets} />

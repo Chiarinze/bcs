@@ -27,7 +27,18 @@ export default async function DashboardLayout({
 
   const profile = data as Profile | null;
 
-  if (!profile || !profile.profile_completed) {
+  if (!profile) {
+    redirect("/member-login");
+  }
+
+  if (profile.closed_at) {
+    const { createClient: createAuthClient } = await import("@/lib/supabase/server");
+    const authClient = await createAuthClient();
+    await authClient.auth.signOut();
+    redirect("/account-closed");
+  }
+
+  if (!profile.profile_completed) {
     redirect("/profile-setup");
   }
 
