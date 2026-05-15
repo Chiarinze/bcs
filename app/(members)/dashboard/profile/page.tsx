@@ -181,23 +181,20 @@ export default function ProfilePage() {
       photo_url: photoUrl,
     };
 
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update(updateData)
-      .eq("id", user.id);
+    const res = await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updateData),
+    });
 
-    if (updateError) {
-      setError(updateError.message);
+    if (!res.ok) {
+      const { error: updateErr } = await res.json().catch(() => ({ error: "Update failed" }));
+      setError(updateErr || "Update failed");
       setSaving(false);
       return;
     }
 
-    // Refresh profile
-    const { data: updated } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single<Profile>();
+    const updated = (await res.json()) as Profile;
 
     if (updated) {
       setProfile(updated);

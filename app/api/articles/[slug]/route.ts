@@ -198,26 +198,31 @@ export async function DELETE(_req: NextRequest, { params }: Props) {
     }
   }
 
-  // Clean up cover image from storage
-  if (article.cover_image_url) {
-    const urlParts = article.cover_image_url.split("/article-images/");
-    if (urlParts[1]) {
-      await supabase.storage
-        .from("article-images")
-        .remove([decodeURIComponent(urlParts[1])]);
-    }
+  // Clean up images from storage. Only delete objects that this author actually owns —
+  // an attacker could otherwise plant another user's path in cover_image_url / inline <img>
+  // and trigger arbitrary deletion via the service-role client.
+  const ownedPrefix = `${article.author_id}/`;
+  const candidatePaths = new Set<string>();
+
+  function addIfOwned(rawUrl: string) {
+    const parts = rawUrl.split("/article-images/");
+    if (!parts[1]) return;
+    const path = decodeURIComponent(parts[1]);
+    if (path.startsWith(ownedPrefix)) candidatePaths.add(path);
   }
 
-  // Clean up inline images from content
+  if (article.cover_image_url) addIfOwned(article.cover_image_url);
+
   const imgRegex = /src="([^"]*article-images[^"]*)"/g;
   let match;
-  const imagePaths: string[] = [];
   while ((match = imgRegex.exec(article.content || "")) !== null) {
-    const parts = match[1].split("/article-images/");
-    if (parts[1]) imagePaths.push(decodeURIComponent(parts[1]));
+    addIfOwned(match[1]);
   }
-  if (imagePaths.length > 0) {
-    await supabase.storage.from("article-images").remove(imagePaths);
+
+  if (candidatePaths.size > 0) {
+    await supabase.storage
+      .from("article-images")
+      .remove(Array.from(candidatePaths));
   }
 
   const { error } = await supabase

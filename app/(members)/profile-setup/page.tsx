@@ -185,13 +185,15 @@ export default function ProfileSetupPage() {
       profile_completed: true,
     };
 
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update(profileData)
-      .eq("id", user.id);
+    const res = await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(profileData),
+    });
 
-    if (updateError) {
-      setError(updateError.message);
+    if (!res.ok) {
+      const { error: updateErr } = await res.json().catch(() => ({ error: "Update failed" }));
+      setError(updateErr || "Update failed");
       setLoading(false);
       return;
     }

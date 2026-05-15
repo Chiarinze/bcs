@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { requireAuth } from "@/lib/requireAuth";
+import { requireAdmin } from "@/lib/requireAdmin";
 import { slugify } from "@/lib/slugify";
 import sanitizeHtml from "sanitize-html";
 
@@ -60,8 +61,10 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Only allow draft or published (admin) on creation
-  const finalStatus = status === "published" ? "published" : "draft";
+  // Only admins may publish directly; everyone else must go through the review queue
+  const adminCheck = await requireAdmin();
+  const isAdmin = !(adminCheck instanceof NextResponse);
+  const finalStatus = status === "published" && isAdmin ? "published" : "draft";
 
   const supabase = createServerSupabase();
 

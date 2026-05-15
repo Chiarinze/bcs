@@ -5,6 +5,7 @@ import { createClient as createAuthClient } from "@/lib/supabase/server";
 import sanitizeHtml from "sanitize-html";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { verifyHCaptcha } from "@/lib/hcaptcha";
+import { sanitizeSearch } from "@/lib/sanitize";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -180,29 +181,33 @@ export async function POST(req: NextRequest, { params }: Props) {
     );
   }
 
-  // Impersonation check: reject names matching any real member profile
-  const { data: impersonation } = await supabase
-    .from("profiles")
-    .select("id, first_name, last_name")
-    .or(
-      `first_name.ilike.${cleanName.split(" ")[0]},last_name.ilike.${
-        cleanName.split(" ").slice(-1)[0]
-      }`
-    );
+  // Impersonation check: reject names matching any real member profile.
+  // Strip PostgREST metacharacters before interpolating into .or() — without this,
+  // a crafted guest_name like "alice,first_name.is.null bob" injects extra filter clauses.
+  const nameTokens = cleanName.split(" ");
+  const firstToken = sanitizeSearch(nameTokens[0] || "");
+  const lastToken = sanitizeSearch(nameTokens[nameTokens.length - 1] || "");
 
-  if (impersonation && impersonation.length > 0) {
-    const clash = impersonation.some(
-      (p: { first_name: string | null; last_name: string | null }) =>
-        normalizeName(`${p.first_name ?? ""} ${p.last_name ?? ""}`) === normalized
-    );
-    if (clash) {
-      return NextResponse.json(
-        {
-          error:
-            "That name matches a registered member. Please log in or use a different name.",
-        },
-        { status: 400 }
+  if (firstToken && lastToken) {
+    const { data: impersonation } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .or(`first_name.ilike.${firstToken},last_name.ilike.${lastToken}`);
+
+    if (impersonation && impersonation.length > 0) {
+      const clash = impersonation.some(
+        (p: { first_name: string | null; last_name: string | null }) =>
+          normalizeName(`${p.first_name ?? ""} ${p.last_name ?? ""}`) === normalized
       );
+      if (clash) {
+        return NextResponse.json(
+          {
+            error:
+              "That name matches a registered member. Please log in or use a different name.",
+          },
+          { status: 400 }
+        );
+      }
     }
   }
 

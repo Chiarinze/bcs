@@ -14,9 +14,9 @@ export default function Home() {
     url: "https://www.beninchoraleandphilharmonic.com",
     description: "Promoting choral and orchestral music in Nigeria and beyond.",
     sameAs: [
-      "https://www.facebook.com/beninchorale",
-      "https://www.instagram.com/beninchorale",
-      "https://www.linkedin.com/company/beninchorale",
+      "https://www.facebook.com/BcsNig",
+      "https://www.instagram.com/the_benin_chorale_society",
+      // "https://www.linkedin.com/company/beninchorale",
     ],
     foundingLocation: {
       "@type": "Place",
