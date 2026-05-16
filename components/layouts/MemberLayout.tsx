@@ -11,6 +11,7 @@ import {
   Calendar,
   FileText,
   ClipboardCheck,
+  Music,
   User,
   LogOut,
   Menu,
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/events", label: "Events", icon: Calendar },
   { href: "/dashboard/articles", label: "Articles", icon: FileText },
   { href: "/dashboard/attendance", label: "Attendance", icon: ClipboardCheck },
+  { href: "/dashboard/recital", label: "Recital", icon: Music },
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ];
 

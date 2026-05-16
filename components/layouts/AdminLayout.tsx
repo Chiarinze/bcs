@@ -15,6 +15,7 @@ import {
   Award,
   Shield,
   ClipboardCheck,
+  Music,
   Menu,
   X,
 } from "lucide-react";
@@ -41,6 +42,7 @@ export default function AdminLayout({
     { href: "/admin/articles", label: "Articles", icon: FileText },
     { href: "/admin/donations", label: "Donations", icon: Heart },
     { href: "/admin/attendance", label: "Attendance", icon: ClipboardCheck },
+    { href: "/admin/recital", label: "Recital", icon: Music },
     { href: "/admin/grants", label: "Grants", icon: Award },
   ];
 

@@ -216,6 +216,57 @@ export interface GrantOpportunity {
   updated_at: string;
 }
 
+// ========== Compulsory Recital Types ==========
+
+export type RecitalQueryStatus = "pending" | "booked" | "cleared";
+export type RecitalBookingStatus = "scheduled" | "passed" | "failed";
+
+export interface RecitalConfig {
+  id: number;
+  cutoff_date: string;
+  pass_mark: number;
+  max_per_day: number;
+}
+
+export interface RecitalQuery {
+  id: string;
+  profile_id: string;
+  issued_by: string | null;
+  issued_at: string;
+  status: RecitalQueryStatus;
+  cleared_at: string | null;
+  profile?: Pick<Profile, "id" | "first_name" | "last_name" | "email" | "photo_url" | "ensemble_arm" | "choir_part">;
+  latest_booking?: RecitalBooking | null;
+}
+
+export interface RecitalBooking {
+  id: string;
+  query_id: string;
+  profile_id: string;
+  recital_date: string;
+  slot_number: number;
+  chosen_piece: string;
+  status: RecitalBookingStatus;
+  score_diction: number | null;
+  score_costume: number | null;
+  score_vocal_production: number | null;
+  score_accompaniment: number | null;
+  score_expression: number | null;
+  total_score: number;
+  scored_by: string | null;
+  scored_at: string | null;
+  scorer_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  profile?: Pick<Profile, "id" | "first_name" | "last_name" | "email" | "photo_url" | "ensemble_arm" | "choir_part">;
+}
+
+export interface RecitalDaySlotInfo {
+  date: string;
+  remaining: number;
+  full: boolean;
+}
+
 export interface AuditionRegistration {
   id: string;
   event_id: string;

@@ -36,6 +36,19 @@ export function validateCsrf(req: NextRequest): NextResponse | null {
     return null;
   }
 
+  // Same-origin localhost short-circuit. A real production user's browser can
+  // never send Origin: http://localhost to a remote prod server, so this rule
+  // is dormant in prod and lets local dev work even if NEXT_PUBLIC_BASE_URL
+  // points at the production URL.
+  const host = req.headers.get("host") ?? "";
+  const isLocalhostHost = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host);
+  if (
+    isLocalhostHost &&
+    (source === `http://${host}` || source === `https://${host}`)
+  ) {
+    return null;
+  }
+
   // Build the expected-origin list. Prefer the explicitly configured base URL —
   // never the request's Host header alone, which an attacker can spoof when the
   // app isn't behind a trusted, header-pinning proxy.
@@ -53,7 +66,6 @@ export function validateCsrf(req: NextRequest): NextResponse | null {
   if (expectedOrigins.size === 0) {
     // Dev fallback: trust the Host header only when no base URL is configured.
     // In production, always set NEXT_PUBLIC_BASE_URL so this branch is dead code.
-    const host = req.headers.get("host");
     if (host) {
       expectedOrigins.add(`https://${host}`);
       expectedOrigins.add(`http://${host}`);

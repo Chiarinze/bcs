@@ -8,6 +8,7 @@ import {
   MapPin,
   Megaphone,
   ChevronRight,
+  Music2,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,23 @@ export default async function MemberDashboardPage() {
 
   const announcements = announcementsData || [];
 
+  // Fetch open recital query (if any) for an attention banner
+  const { data: openRecitalQuery } = await serverSupabase
+    .from("recital_queries")
+    .select("id, status, issued_at")
+    .eq("profile_id", user!.id)
+    .neq("status", "cleared")
+    .maybeSingle();
+
+  const { data: scheduledRecitalBooking } = openRecitalQuery
+    ? await serverSupabase
+        .from("recital_bookings")
+        .select("recital_date, slot_number, chosen_piece")
+        .eq("query_id", openRecitalQuery.id)
+        .eq("status", "scheduled")
+        .maybeSingle()
+    : { data: null };
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -61,6 +79,40 @@ export default async function MemberDashboardPage() {
           Welcome back. Here&apos;s what&apos;s happening.
         </p>
       </div>
+
+      {/* Active recital query banner */}
+      {openRecitalQuery && (
+        <Link
+          href="/dashboard/recital"
+          className="block bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-5 hover:bg-red-100/60 transition group"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 grid place-items-center flex-shrink-0">
+              <Music2 className="w-5 h-5 text-red-700" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-semibold text-red-900">Compulsory Recital — action required</h3>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-red-700 bg-red-100 px-1.5 py-0.5 rounded-full">
+                  {openRecitalQuery.status}
+                </span>
+              </div>
+              <p className="text-sm text-red-800 mt-1">
+                {scheduledRecitalBooking
+                  ? `You're booked for ${new Date(
+                      scheduledRecitalBooking.recital_date + "T00:00:00"
+                    ).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                    })} (slot #${scheduledRecitalBooking.slot_number}). Tap to view your booking.`
+                  : "A query has been issued against you. Book a Friday slot and perform your assigned piece to clear it."}
+              </p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-red-400 group-hover:translate-x-0.5 transition" />
+          </div>
+        </Link>
+      )}
 
       {/* Announcements */}
       {announcements.length > 0 && (
