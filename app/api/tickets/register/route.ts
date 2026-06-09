@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
     let resolvedCategoryName = "Free";
     let expectedPrice = 0;
 
-    if (category) {
+    // Only look up ticket_categories for paid events; free events don't have category rows
+    if (category && event.is_paid) {
       const { data: ticketCategory } = await supabase
         .from("ticket_categories")
         .select("name, price")
