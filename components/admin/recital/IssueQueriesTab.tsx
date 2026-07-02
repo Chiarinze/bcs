@@ -24,21 +24,42 @@ export default function IssueQueriesTab() {
   const [loading, setLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [bookingClosed, setBookingClosed] = useState(false);
+  const [savingClosed, setSavingClosed] = useState(false);
 
   async function load() {
     setLoading(true);
-    const [elRes, qRes] = await Promise.all([
+    const [elRes, qRes, cfgRes] = await Promise.all([
       fetch("/api/admin/recital/eligible"),
       fetch("/api/admin/recital/queries"),
+      fetch("/api/admin/recital/config"),
     ]);
     if (elRes.ok) setEligible(await elRes.json());
     if (qRes.ok) setQueries(await qRes.json());
+    if (cfgRes.ok) {
+      const j = await cfgRes.json();
+      setBookingClosed(Boolean(j.config?.booking_closed));
+    }
     setLoading(false);
   }
 
   useEffect(() => {
     load();
   }, []);
+
+  async function toggleBookingClosed(next: boolean) {
+    setSavingClosed(true);
+    const res = await fetch("/api/admin/recital/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ booking_closed: next }),
+    });
+    if (res.ok) {
+      const j = await res.json();
+      setBookingClosed(Boolean(j.config?.booking_closed));
+    }
+    setSavingClosed(false);
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -148,6 +169,36 @@ export default function IssueQueriesTab() {
 
   return (
     <div className="space-y-6">
+      {/* Date selection lock */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-gray-900">Recital date selection</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {bookingClosed
+                ? "Closed — members cannot pick or change a recital date."
+                : "Open — members can pick or change their recital date."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={bookingClosed}
+            disabled={savingClosed}
+            onClick={() => toggleBookingClosed(!bookingClosed)}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+              bookingClosed ? "bg-red-500" : "bg-gray-200"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                bookingClosed ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Total queries" value={queryCount} />

@@ -30,6 +30,7 @@ export async function GET() {
     return NextResponse.json({
       cutoff_date: cfg.cutoff_date,
       max_per_day: cfg.max_per_day,
+      booking_closed: cfg.booking_closed,
       days: [],
     });
   }
@@ -55,6 +56,7 @@ export async function GET() {
   return NextResponse.json({
     cutoff_date: cfg.cutoff_date,
     max_per_day: cfg.max_per_day,
+    booking_closed: cfg.booking_closed,
     today: toISODate(today),
     days,
   });

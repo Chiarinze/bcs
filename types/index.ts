@@ -226,6 +226,7 @@ export interface RecitalConfig {
   cutoff_date: string;
   pass_mark: number;
   max_per_day: number;
+  booking_closed: boolean;
 }
 
 export interface RecitalQuery {

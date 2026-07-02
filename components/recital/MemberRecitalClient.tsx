@@ -160,6 +160,7 @@ export default function MemberRecitalClient() {
           booking={activeBooking}
           onChanged={load}
           availability={availability}
+          bookingClosed={Boolean(me.config?.booking_closed)}
         />
       )}
 
@@ -172,7 +173,11 @@ export default function MemberRecitalClient() {
             assigned options in the PDF.
           </p>
 
-          {availability && availability.days.length === 0 ? (
+          {me.config?.booking_closed ? (
+            <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              Date selection is currently closed by the admin.
+            </p>
+          ) : availability && availability.days.length === 0 ? (
             <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               No Fridays remain before the cutoff. Contact the admin urgently.
             </p>
@@ -338,10 +343,12 @@ function ActiveBookingCard({
   booking,
   onChanged,
   availability,
+  bookingClosed,
 }: {
   booking: RecitalBooking;
   onChanged: () => void;
   availability: AvailabilityResponse | null;
+  bookingClosed: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [newDate, setNewDate] = useState(booking.recital_date);
@@ -379,7 +386,7 @@ function ActiveBookingCard({
     <div className="bg-white border-2 border-bcs-green rounded-2xl p-5">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <h2 className="font-semibold text-gray-900">Your scheduled recital</h2>
-        {!editing && !lockedForEdit && (
+        {!editing && !lockedForEdit && !bookingClosed && (
           <button
             onClick={() => setEditing(true)}
             className="text-xs text-bcs-green hover:underline inline-flex items-center gap-1"
@@ -454,7 +461,12 @@ function ActiveBookingCard({
         </div>
       )}
 
-      {lockedForEdit && !editing && (
+      {bookingClosed && !editing && (
+        <p className="text-xs text-gray-400 mt-3">
+          Date selection is currently closed by the admin.
+        </p>
+      )}
+      {!bookingClosed && lockedForEdit && !editing && (
         <p className="text-xs text-gray-400 mt-3">
           Changes are locked within 24 hours of the recital.
         </p>
