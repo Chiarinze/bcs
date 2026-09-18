@@ -63,6 +63,17 @@ export function validateCsrf(req: NextRequest): NextResponse | null {
     }
   }
 
+  // Vercel injects the deployment's own hostnames at build time, so preview
+  // deployments (which still carry the production NEXT_PUBLIC_BASE_URL) can
+  // accept same-origin requests. These are server-set, not client-supplied.
+  for (const vercelHost of [
+    process.env.VERCEL_URL,
+    process.env.VERCEL_BRANCH_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL,
+  ]) {
+    if (vercelHost) expectedOrigins.add(`https://${vercelHost}`);
+  }
+
   if (expectedOrigins.size === 0) {
     // Dev fallback: trust the Host header only when no base URL is configured.
     // In production, always set NEXT_PUBLIC_BASE_URL so this branch is dead code.
