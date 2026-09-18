@@ -53,44 +53,29 @@ export default function AuditionRegistrationForm({ eventId }: Props) {
     }
 
     try {
-      // 1. Upload Photo
-      const fileExt = photoFile.name.split(".").pop();
-      const fileName = `auditions/${eventId}/${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("passports")
-        .upload(fileName, photoFile);
-      if (uploadError) throw uploadError;
+      // The photo travels with the registration; the server validates and
+      // stores it only if the whole submission is accepted.
+      const payload = new FormData();
+      payload.append("event_id", eventId);
+      payload.append("first_name", String(formData.get("first_name") ?? ""));
+      payload.append("last_name", String(formData.get("last_name") ?? ""));
+      payload.append("email", String(formData.get("email") ?? ""));
+      payload.append("phone_number", String(formData.get("phone_number") ?? ""));
+      payload.append("physical_address", String(formData.get("physical_address") ?? ""));
+      payload.append("date_of_birth", String(formData.get("dob") ?? ""));
+      payload.append("audition_type", auditionType);
+      if (auditionType === "instrument") {
+        payload.append("instrument_name", String(formData.get("instrument_name") ?? ""));
+      } else {
+        payload.append("voice_part", String(formData.get("voice_part") ?? ""));
+      }
+      payload.append("tonic_solfa_score", String(formData.get("tonic_solfa") ?? ""));
+      payload.append("staff_notation_score", String(formData.get("staff_notation") ?? ""));
+      payload.append("preferred_time", String(formData.get("preferred_time") ?? ""));
+      payload.append("attestation", formData.get("attestation") === "on" ? "true" : "false");
+      payload.append("photo", photoFile);
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("passports").getPublicUrl(fileName);
-
-      // 2. Submit to server-side audition endpoint (enforces registration_closed)
-      const res = await fetch("/api/auditions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_id: eventId,
-          first_name: formData.get("first_name"),
-          last_name: formData.get("last_name"),
-          email: formData.get("email"),
-          phone_number: formData.get("phone_number"),
-          physical_address: formData.get("physical_address"),
-          date_of_birth: formData.get("dob"),
-          audition_type: auditionType,
-          instrument_name:
-            auditionType === "instrument"
-              ? formData.get("instrument_name")
-              : null,
-          voice_part:
-            auditionType === "voice" ? formData.get("voice_part") : null,
-          tonic_solfa_score: Number(formData.get("tonic_solfa")),
-          staff_notation_score: Number(formData.get("staff_notation")),
-          photo_url: publicUrl,
-          preferred_time: formData.get("preferred_time"),
-          attestation: formData.get("attestation") === "on",
-        }),
-      });
+      const res = await fetch("/api/auditions", { method: "POST", body: payload });
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

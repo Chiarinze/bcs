@@ -67,12 +67,37 @@ CREATE POLICY "Authors can update own drafts"
 REVOKE SELECT (access_code) ON public.events FROM anon, authenticated;
 
 -- ---------------------------------------------------------------------
--- 6. SANITY CHECK — list what is left. Expect no 'public'/'anon' INSERT
+-- 6. STORAGE — anyone with the anon key could upload to event-images,
+--    passports and event-documents, and delete from event-documents.
+--    All uploads now go through /api/upload (or /api/auditions for the
+--    applicant photo) with the service role, so client write policies go.
+--    Public READ stays: the buckets are public by design.
+-- ---------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public Delete"                            ON storage.objects;
+DROP POLICY IF EXISTS "Allow public uploads and reads 1o4y39n_1" ON storage.objects;
+DROP POLICY IF EXISTS "Public Passports Upload"                  ON storage.objects;
+DROP POLICY IF EXISTS "Public Upload"                            ON storage.objects;
+DROP POLICY IF EXISTS "Public upload to event-images"            ON storage.objects;
+
+-- Collapse the three duplicate event-images read policies into one.
+DROP POLICY IF EXISTS "Allow public read 1o4y39n_0"              ON storage.objects;
+DROP POLICY IF EXISTS "Allow public uploads and reads 1o4y39n_0" ON storage.objects;
+DROP POLICY IF EXISTS "Public read access to event-images"       ON storage.objects;
+CREATE POLICY "Public read access to event-images"
+  ON storage.objects FOR SELECT
+  TO anon, authenticated
+  USING (bucket_id = 'event-images');
+
+-- article-images has no policies at all (API-only) — correct, leave it.
+
+-- ---------------------------------------------------------------------
+-- 7. SANITY CHECK — list what is left. Expect no 'public'/'anon' INSERT
 --    policies and no SELECT ... USING (true) on tickets/coupons/donations.
 -- ---------------------------------------------------------------------
-SELECT tablename, policyname, cmd, roles
+SELECT schemaname, tablename, policyname, cmd, roles
 FROM pg_policies
-WHERE schemaname = 'public'
-  AND tablename IN ('tickets', 'coupon_codes', 'donations', 'articles',
-                    'audition_registrations', 'internal_event_registrations')
-ORDER BY tablename, cmd, policyname;
+WHERE (schemaname = 'public'
+       AND tablename IN ('tickets', 'coupon_codes', 'donations', 'articles',
+                         'audition_registrations', 'internal_event_registrations'))
+   OR schemaname = 'storage'
+ORDER BY schemaname, tablename, cmd, policyname;

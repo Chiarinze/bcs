@@ -3,6 +3,7 @@ import { createServerSupabase } from "@/lib/supabaseServer";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { sanitizeSearch } from "@/lib/sanitize";
+import { detectImageType } from "@/lib/detectImageType";
 
 interface AuditionBody {
   event_id: string;
@@ -30,12 +31,38 @@ export async function POST(req: NextRequest) {
   });
   if (limited) return limited;
 
-  let body: AuditionBody;
+  // Multipart: all the text fields plus the applicant's photo. The photo is
+  // only written to storage after the whole registration validates.
+  let form: FormData;
   try {
-    body = (await req.json()) as AuditionBody;
+    form = await req.formData();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
   }
+
+  const str = (k: string) => {
+    const v = form.get(k);
+    return typeof v === "string" ? v.trim() : "";
+  };
+  const num = (k: string) => Number(str(k));
+
+  const body: Omit<AuditionBody, "photo_url"> = {
+    event_id: str("event_id"),
+    first_name: str("first_name"),
+    last_name: str("last_name"),
+    email: str("email"),
+    phone_number: str("phone_number"),
+    physical_address: str("physical_address"),
+    date_of_birth: str("date_of_birth"),
+    audition_type: str("audition_type") as "voice" | "instrument",
+    instrument_name: str("instrument_name") || null,
+    voice_part: str("voice_part") || null,
+    tonic_solfa_score: num("tonic_solfa_score"),
+    staff_notation_score: num("staff_notation_score"),
+    preferred_time: str("preferred_time"),
+    attestation: str("attestation") === "true",
+  };
+  const photo = form.get("photo") as File | null;
 
   const {
     event_id,
@@ -50,7 +77,6 @@ export async function POST(req: NextRequest) {
     voice_part,
     tonic_solfa_score,
     staff_notation_score,
-    photo_url,
     preferred_time,
     attestation,
   } = body;
@@ -64,7 +90,8 @@ export async function POST(req: NextRequest) {
     !physical_address ||
     !date_of_birth ||
     !audition_type ||
-    !photo_url ||
+    !photo ||
+    photo.size === 0 ||
     !preferred_time ||
     !attestation
   ) {
@@ -108,6 +135,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Photo: ≤2MB, real image bytes. Stored under passports/auditions/<event>/.
+  if (photo.size > 2 * 1024 * 1024) {
+    return NextResponse.json({ error: "Photo must be under 2MB" }, { status: 400 });
+  }
+  const photoBuffer = Buffer.from(await photo.arrayBuffer());
+  const photoType = detectImageType(photoBuffer);
+  if (!photoType || photoType.ext === "gif") {
+    return NextResponse.json({ error: "Photo must be a PNG, JPEG or WebP image" }, { status: 400 });
+  }
+
+  const photoPath = `auditions/${event.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${photoType.ext}`;
+  const { error: uploadError } = await supabase.storage
+    .from("passports")
+    .upload(photoPath, photoBuffer, { contentType: photoType.mime });
+  if (uploadError) {
+    return NextResponse.json({ error: "Photo upload failed" }, { status: 500 });
+  }
+  const photo_url = supabase.storage.from("passports").getPublicUrl(photoPath).data.publicUrl;
+
   const { error } = await supabase.from("audition_registrations").insert({
     event_id,
     first_name,
@@ -127,6 +173,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) {
+    await supabase.storage.from("passports").remove([photoPath]);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

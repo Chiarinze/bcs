@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { uploadPassportFile } from "@/lib/uploadClient";
 import { TextInput } from "@/components/ui/FormInputs";
 import Button from "@/components/ui/Button";
 import { User, Upload, X, Shield, Calendar, MapPin, Music, Mail, FileText } from "lucide-react";
@@ -154,24 +155,13 @@ export default function ProfilePage() {
     let photoUrl = profile?.photo_url || null;
 
     if (photoFile) {
-      const fileExt = photoFile.name.split(".").pop()?.toLowerCase();
-      const fileName = `${user.id}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("passports")
-        .upload(fileName, photoFile, { upsert: true });
-
-      if (uploadError) {
-        setError(`Photo upload failed: ${uploadError.message}`);
+      try {
+        photoUrl = (await uploadPassportFile(photoFile)).url;
+      } catch (err) {
+        setError(`Photo upload failed: ${err instanceof Error ? err.message : "unknown error"}`);
         setSaving(false);
         return;
       }
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("passports").getPublicUrl(fileName);
-
-      photoUrl = publicUrl;
     }
 
     const updateData = {

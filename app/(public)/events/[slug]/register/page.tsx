@@ -1,7 +1,6 @@
 import { Metadata } from "next";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { notFound, redirect } from "next/navigation";
-import InternalRegistrationForm from "@/components/events/InternalRegistrationForm";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import AuditionRegistrationForm from "@/components/events/AuditionRegistrationForm";
@@ -115,7 +114,7 @@ export default async function EventRegisterPage({ params }: Props) {
       {event.event_type === 'audition' ? (
         <AuditionRegistrationForm eventId={event.id} />
       ) : (
-        <InternalRegistrationForm eventId={event.id} eventSlug={slug} />
+        <p className="text-center text-gray-500">This event has no online registration.</p>
       )}
     </section>
   );

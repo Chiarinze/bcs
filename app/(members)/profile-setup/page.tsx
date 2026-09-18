@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { uploadPassportFile } from "@/lib/uploadClient";
 import { TextInput } from "@/components/ui/FormInputs";
 import Button from "@/components/ui/Button";
 import Image from "next/image";
@@ -149,24 +150,13 @@ export default function ProfileSetupPage() {
 
     // Upload photo if provided
     if (photoFile) {
-      const fileExt = photoFile.name.split(".").pop()?.toLowerCase();
-      const fileName = `${user.id}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("passports")
-        .upload(fileName, photoFile, { upsert: true });
-
-      if (uploadError) {
-        setError(`Photo upload failed: ${uploadError.message}`);
+      try {
+        photoUrl = (await uploadPassportFile(photoFile)).url;
+      } catch (err) {
+        setError(`Photo upload failed: ${err instanceof Error ? err.message : "unknown error"}`);
         setLoading(false);
         return;
       }
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("passports").getPublicUrl(fileName);
-
-      photoUrl = publicUrl;
     }
 
     const profileData: Omit<ProfileSetupData, "photo_url"> & {
