@@ -17,9 +17,6 @@ export const metadata: Metadata = {
     "choral music",
     "African classical music",
   ],
-  alternates: {
-    canonical: "https://www.beninchoraleandphilharmonic.com",
-  },
   openGraph: {
     title: "The Benin Chorale & Philharmonic",
     description:
@@ -31,8 +28,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/icon.jpeg",
-        width: 1200,
-        height: 630,
+        width: 474,
+        height: 467,
         alt: "Benin Chorale & Philharmonic",
       },
     ],

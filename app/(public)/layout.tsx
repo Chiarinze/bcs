@@ -1,6 +1,5 @@
 import { Header } from "@/components/layouts/Header";
 import { Footer } from "@/components/layouts/Footer";
-import "@/app/globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -26,23 +25,23 @@ export const metadata: Metadata = {
   },
 };
 
+// The root layout already renders <html> and <body>; a route-group layout
+// must only render its own chrome, otherwise the document is nested twice.
 export default function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className="font-sans antialiased bg-bcs-bg text-bcs-text">
-        <Header />
-        <main
-          id="main-content"
-          className="min-h-screen relative isolate overflow-hidden"
-        >
-          {children}
-        </main>
-        <Footer />
-      </body>
-    </html>
+    <>
+      <Header />
+      <div
+        id="main-content"
+        className="min-h-screen relative isolate overflow-hidden"
+      >
+        {children}
+      </div>
+      <Footer />
+    </>
   );
 }

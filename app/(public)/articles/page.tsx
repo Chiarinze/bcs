@@ -8,6 +8,7 @@ import Link from "next/link";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/articles" },
   title: "Articles & Poetry",
   description:
     "Read the latest articles, blog posts, and poetry from The Benin Chorale & Philharmonic.",

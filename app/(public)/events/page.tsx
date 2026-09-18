@@ -7,6 +7,7 @@ import EventImage from "@/components/common/EventImage";
 export const revalidate = 60;
 
 export const metadata = {
+  alternates: { canonical: "/events" },
   title: "Events | The Benin Chorale & Philharmonic",
   description:
     "Discover upcoming concerts, performances, and events by The Benin Chorale & Philharmonic.",

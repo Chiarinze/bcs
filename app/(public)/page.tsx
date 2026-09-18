@@ -4,6 +4,11 @@ import { performances } from "@/data";
 import Image from "next/image";
 import Link from "next/link";
 import { RevealWrapper } from "@/components/RevealWrapper";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function HomePage() {
   const organizationSchema = {

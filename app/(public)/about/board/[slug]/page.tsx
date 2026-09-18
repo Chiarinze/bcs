@@ -30,7 +30,7 @@ export async function generateMetadata({
     description:
       member.about?.[0]?.text.slice(0, 160) || "Board member profile",
     alternates: {
-      canonical: `https://www.beninchoraleandphilharmonic.com/board/${slug}`,
+      canonical: `https://www.beninchoraleandphilharmonic.com/about/board/${slug}`,
     },
     openGraph: {
       title: `${member.name} - ${member.position}`,
@@ -71,7 +71,7 @@ export default async function BoardMemberPage({
     name: member.name,
     jobTitle: member.position,
     image: member.image.src,
-    url: `https://www.beninchoraleandphilharmonic.com/board/${slug}`,
+    url: `https://www.beninchoraleandphilharmonic.com/about/board/${slug}`,
   };
 
   return (

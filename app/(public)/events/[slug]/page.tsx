@@ -28,26 +28,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { data: event } = await supabase
     .from("events")
-    .select("title, description, image_url")
+    .select("title, description, image_url, is_internal")
     .eq("slug", slug)
     .single();
 
   if (!event) return { title: "Event Not Found" };
 
-  const title = `Register for ${event.title}`;
+  const title = event.title;
   const description =
-    event.description ||
-    "Internal registration for members of the Benin Chorale & Philharmonic.";
+    event.description?.slice(0, 160) ||
+    "An event by The Benin Chorale & Philharmonic.";
   const imageUrl = event.image_url || "/icon.jpeg";
 
   return {
     title,
     description,
+    alternates: { canonical: `/events/${slug}` },
+    // Members-only events are reachable by link but should not be indexed.
+    robots: event.is_internal ? { index: false, follow: false } : undefined,
     openGraph: {
       title,
       description,
       type: "website",
-      url: `https://www.beninchoraleandphilharmonic.com/events/${slug}/register`,
+      url: `https://www.beninchoraleandphilharmonic.com/events/${slug}`,
       images: [
         {
           url: imageUrl,
