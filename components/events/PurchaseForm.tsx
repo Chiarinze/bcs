@@ -24,6 +24,7 @@ export default function PurchaseForm({ event, categories }: Props) {
   );
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
+  const [subscribe, setSubscribe] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const [coupon, setCoupon] = useState("");
@@ -101,6 +102,7 @@ export default function PurchaseForm({ event, categories }: Props) {
             event_id: event.id,
             buyer_name: buyerName,
             buyer_email: buyerEmail,
+            subscribe,
             category: selectedCategory || "Free",
             amount: 0,
           }),
@@ -132,6 +134,7 @@ export default function PurchaseForm({ event, categories }: Props) {
             event_id: event.id,
             buyer_name: buyerName,
             buyer_email: buyerEmail,
+            subscribe,
             category: selectedCategory || "Free",
             amount: 0,
             coupon_code: coupon || null,
@@ -187,6 +190,7 @@ export default function PurchaseForm({ event, categories }: Props) {
               event_id: event.id,
               buyer_name: buyerName,
               buyer_email: buyerEmail,
+              subscribe,
               category: selectedCategory,
               amount: finalAmount,
               coupon_code: coupon || null,
@@ -252,6 +256,19 @@ export default function PurchaseForm({ event, categories }: Props) {
           className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-bcs-green"
         />
       </div>
+
+      <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={subscribe}
+          onChange={(e) => setSubscribe(e.target.checked)}
+          className="mt-0.5 rounded border-gray-300 text-bcs-green focus:ring-bcs-green"
+        />
+        <span>
+          Keep me updated about upcoming concerts and events by email. You can
+          unsubscribe at any time.
+        </span>
+      </label>
 
       {event.is_paid && (
         <div>

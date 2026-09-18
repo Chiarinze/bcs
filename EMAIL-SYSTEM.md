@@ -92,6 +92,42 @@ Wraps email body content with the standard BCS email template (logo, header, foo
 - **Email content:** Grant title, link to admin grants page
 - **Recipient:** Admin email (from vault)
 
+## Sending through `send_email()` (preferred since Sept 2026)
+
+`db/email_log.sql` adds a helper that every new trigger should call instead of
+`net.http_post` directly:
+
+```sql
+PERFORM send_email(
+  'my_kind',                 -- short tag shown in the admin Email log
+  recipient_email,
+  'Subject line',
+  build_email_html(inner_html),
+  -- optional: from, reply_to, headers jsonb, plain-text body, meta jsonb
+);
+```
+
+It makes the same Resend call **and** writes a row to `email_log` with status
+`queued`. The `reconcile-email-log` cron job (every 5 min) reads pg_net's
+`net._http_response` and marks each row `sent`, `failed` (with Resend's error)
+or `unknown` (response expired). Admins see this at `/admin/emails`.
+
+Triggers that use it: directory requests/decisions, contact form + replies,
+ticket + audition confirmations, newsletters. Older triggers (approval,
+promotion, grants, recital, birthdays, internal registrations, account
+closure) still call `net.http_post` directly and do not appear in the log
+until migrated.
+
+## Newsletter drip (`db/newsletter.sql`)
+
+Campaigns are never sent from the app. "Send" calls `enqueue_newsletter()`,
+which snapshots one `newsletter_deliveries` row per subscribed contact. The
+`process-newsletter-queue` cron (every 15 min) sends a batch via
+`send_email()` while `count(email_log today) < newsletter_settings.daily_cap`
+(default 80 — Resend free tier is 100/day for all mail). Failed deliveries are
+retried up to 3 times. Every newsletter carries `List-Unsubscribe` headers, a
+plain-text alternative and a footer link to `/unsubscribe/<token>`.
+
 ## How to Add a New Email
 
 If you need to send a new type of email, follow this pattern:

@@ -28,7 +28,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  resend_key   text := get_secret('resend_api_key');
   site_url     text := COALESCE(get_secret('site_url'), 'https://beninchoraleandphilharmonic.com');
   admin_record record;
   member_name  text;
@@ -38,11 +37,6 @@ DECLARE
 BEGIN
   -- Only when a new request is raised (null → 'hide'/'show').
   IF NEW.directory_request IS NULL OR OLD.directory_request IS NOT DISTINCT FROM NEW.directory_request THEN
-    RETURN NEW;
-  END IF;
-
-  IF resend_key IS NULL OR resend_key = '' THEN
-    RAISE WARNING 'RESEND_API_KEY not set in vault';
     RETURN NEW;
   END IF;
 
@@ -75,19 +69,13 @@ BEGIN
       AND COALESCE(p.email, u.email) IS NOT NULL
       AND COALESCE(p.email, u.email) <> ''
   LOOP
-    PERFORM net.http_post(
-      url := 'https://api.resend.com/emails',
-      headers := jsonb_build_object(
-        'Authorization', 'Bearer ' || resend_key,
-        'Content-Type', 'application/json'
-      ),
-      body := jsonb_build_object(
-        'from', 'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>',
-        'to', admin_record.email,
-        'subject', 'Directory request from ' || member_name,
-        'html', full_html
-      )
-    );
+    PERFORM send_email(
+    'directory_request',
+    admin_record.email,
+    'Directory request from ' || member_name,
+    full_html,
+    'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>'
+  );
   END LOOP;
 
   RETURN NEW;
@@ -115,7 +103,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  resend_key text := get_secret('resend_api_key');
   site_url   text := COALESCE(get_secret('site_url'), 'https://beninchoraleandphilharmonic.com');
   recipient  text;
   approved   boolean;
@@ -124,11 +111,6 @@ DECLARE
   full_html  text;
 BEGIN
   IF OLD.directory_request IS NULL OR NEW.directory_request IS NOT NULL THEN
-    RETURN NEW;
-  END IF;
-
-  IF resend_key IS NULL OR resend_key = '' THEN
-    RAISE WARNING 'RESEND_API_KEY not set in vault';
     RETURN NEW;
   END IF;
 
@@ -161,18 +143,12 @@ BEGIN
 
   full_html := build_email_html(inner_html);
 
-  PERFORM net.http_post(
-    url := 'https://api.resend.com/emails',
-    headers := jsonb_build_object(
-      'Authorization', 'Bearer ' || resend_key,
-      'Content-Type', 'application/json'
-    ),
-    body := jsonb_build_object(
-      'from', 'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>',
-      'to', recipient,
-      'subject', CASE WHEN approved THEN 'Directory request approved' ELSE 'Directory request declined' END,
-      'html', full_html
-    )
+  PERFORM send_email(
+    'directory_decision',
+    recipient,
+    CASE WHEN approved THEN 'Directory request approved' ELSE 'Directory request declined' END,
+    full_html,
+    'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>'
   );
 
   RETURN NEW;

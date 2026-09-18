@@ -19,7 +19,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  resend_key   text := get_secret('resend_api_key');
   site_url     text := COALESCE(get_secret('site_url'), 'https://beninchoraleandphilharmonic.com');
   ev           record;
   date_display text;
@@ -27,10 +26,6 @@ DECLARE
   inner_html   text;
   full_html    text;
 BEGIN
-  IF resend_key IS NULL OR resend_key = '' THEN
-    RAISE WARNING 'RESEND_API_KEY not set in vault';
-    RETURN NEW;
-  END IF;
 
   IF NEW.buyer_email IS NULL OR NEW.buyer_email = '' THEN
     RETURN NEW;
@@ -83,18 +78,12 @@ BEGIN
 
   full_html := build_email_html(inner_html);
 
-  PERFORM net.http_post(
-    url := 'https://api.resend.com/emails',
-    headers := jsonb_build_object(
-      'Authorization', 'Bearer ' || resend_key,
-      'Content-Type', 'application/json'
-    ),
-    body := jsonb_build_object(
-      'from', 'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>',
-      'to', NEW.buyer_email,
-      'subject', CASE WHEN COALESCE(NEW.amount_paid, 0) > 0 THEN 'Your ticket — ' ELSE 'Registration confirmed — ' END || ev.title,
-      'html', full_html
-    )
+  PERFORM send_email(
+    'ticket_confirmation',
+    NEW.buyer_email,
+    CASE WHEN COALESCE(NEW.amount_paid, 0) > 0 THEN 'Your ticket — ' ELSE 'Registration confirmed — ' END || ev.title,
+    full_html,
+    'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>'
   );
 
   RETURN NEW;
@@ -120,7 +109,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  resend_key   text := get_secret('resend_api_key');
   site_url     text := COALESCE(get_secret('site_url'), 'https://beninchoraleandphilharmonic.com');
   ev           record;
   date_display text;
@@ -128,10 +116,6 @@ DECLARE
   inner_html   text;
   full_html    text;
 BEGIN
-  IF resend_key IS NULL OR resend_key = '' THEN
-    RAISE WARNING 'RESEND_API_KEY not set in vault';
-    RETURN NEW;
-  END IF;
 
   IF NEW.email IS NULL OR NEW.email = '' THEN
     RETURN NEW;
@@ -180,18 +164,12 @@ BEGIN
 
   full_html := build_email_html(inner_html);
 
-  PERFORM net.http_post(
-    url := 'https://api.resend.com/emails',
-    headers := jsonb_build_object(
-      'Authorization', 'Bearer ' || resend_key,
-      'Content-Type', 'application/json'
-    ),
-    body := jsonb_build_object(
-      'from', 'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>',
-      'to', NEW.email,
-      'subject', 'Audition registration received — ' || ev.title,
-      'html', full_html
-    )
+  PERFORM send_email(
+    'audition_confirmation',
+    NEW.email,
+    'Audition registration received — ' || ev.title,
+    full_html,
+    'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>'
   );
 
   RETURN NEW;

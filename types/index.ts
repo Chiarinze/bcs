@@ -402,3 +402,54 @@ export interface ContactReply {
   created_at: string;
   sender?: Pick<Profile, "first_name" | "last_name"> | null;
 }
+
+// ========== Newsletter ==========
+
+export type SubscriberStatus = "subscribed" | "unsubscribed";
+
+export interface Subscriber {
+  id: string;
+  email: string;
+  name: string | null;
+  source: string;
+  status: SubscriberStatus;
+  consent_at: string;
+  unsubscribed_at: string | null;
+  created_at: string;
+}
+
+export type NewsletterKind = "newsletter" | "promotional";
+export type NewsletterStatus = "draft" | "queued" | "sending" | "paused" | "sent" | "cancelled";
+
+export interface Newsletter {
+  id: string;
+  subject: string;
+  preheader: string | null;
+  body_html: string;
+  kind: NewsletterKind;
+  status: NewsletterStatus;
+  total_recipients: number;
+  sent_count: number;
+  failed_count: number;
+  created_by: string | null;
+  queued_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EmailLogStatus = "queued" | "sent" | "failed" | "unknown";
+
+export interface EmailLogEntry {
+  id: string;
+  kind: string;
+  to_email: string;
+  from_email: string | null;
+  subject: string;
+  status: EmailLogStatus;
+  status_code: number | null;
+  error: string | null;
+  meta: Record<string, unknown>;
+  created_at: string;
+  resolved_at: string | null;
+}

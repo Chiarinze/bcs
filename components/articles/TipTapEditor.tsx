@@ -1,6 +1,6 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import ImageExtension from "@tiptap/extension-image";
 import LinkExtension from "@tiptap/extension-link";
@@ -29,9 +29,17 @@ import {
 interface TipTapEditorProps {
   content: string;
   onChange: (html: string) => void;
+  placeholder?: string;
+  /** Extra toolbar controls rendered after the built-in ones. */
+  extraTools?: (editor: Editor) => React.ReactNode;
 }
 
-export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
+export default function TipTapEditor({
+  content,
+  onChange,
+  placeholder = "Start writing your article...",
+  extraTools,
+}: TipTapEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -47,7 +55,7 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
         HTMLAttributes: { class: "text-bcs-accent underline" },
       }),
       Placeholder.configure({
-        placeholder: "Start writing your article...",
+        placeholder,
       }),
       Underline,
       TextAlign.configure({
@@ -260,6 +268,13 @@ export default function TipTapEditor({ content, onChange }: TipTapEditorProps) {
         >
           <Redo className="w-4 h-4" />
         </ToolbarButton>
+
+        {extraTools && (
+          <>
+            <Divider />
+            {extraTools(editor)}
+          </>
+        )}
       </div>
 
       {/* Editor Content */}

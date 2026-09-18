@@ -74,17 +74,12 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  resend_key   text := get_secret('resend_api_key');
   site_url     text := COALESCE(get_secret('site_url'), 'https://beninchoraleandphilharmonic.com');
   admin_record record;
   snippet      text;
   inner_html   text;
   full_html    text;
 BEGIN
-  IF resend_key IS NULL OR resend_key = '' THEN
-    RAISE WARNING 'RESEND_API_KEY not set in vault';
-    RETURN NEW;
-  END IF;
 
   snippet := left(regexp_replace(NEW.message, '\s+', ' ', 'g'), 200);
   IF length(NEW.message) > 200 THEN
@@ -115,20 +110,14 @@ BEGIN
       AND COALESCE(p.email, u.email) IS NOT NULL
       AND COALESCE(p.email, u.email) <> ''
   LOOP
-    PERFORM net.http_post(
-      url := 'https://api.resend.com/emails',
-      headers := jsonb_build_object(
-        'Authorization', 'Bearer ' || resend_key,
-        'Content-Type', 'application/json'
-      ),
-      body := jsonb_build_object(
-        'from', 'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>',
-        'to', admin_record.email,
-        'reply_to', NEW.email,
-        'subject', 'Contact form: ' || NEW.subject,
-        'html', full_html
-      )
-    );
+    PERFORM send_email(
+    'contact_message',
+    admin_record.email,
+    'Contact form: ' || NEW.subject,
+    full_html,
+    'The Benin Chorale & Philharmonic <noreply@beninchoraleandphilharmonic.com>',
+    NEW.email
+  );
   END LOOP;
 
   RETURN NEW;
@@ -154,7 +143,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  resend_key text := get_secret('resend_api_key');
   msg        public.contact_messages%ROWTYPE;
   reply_html text;
   inner_html text;
@@ -169,11 +157,6 @@ BEGIN
   UPDATE public.contact_messages
   SET status = 'replied', read_at = COALESCE(read_at, now())
   WHERE id = msg.id;
-
-  IF resend_key IS NULL OR resend_key = '' THEN
-    RAISE WARNING 'RESEND_API_KEY not set in vault';
-    RETURN NEW;
-  END IF;
 
   -- Preserve the admin's line breaks.
   reply_html := replace(html_escape(NEW.body), E'\n', '<br/>');
@@ -191,19 +174,13 @@ BEGIN
 
   full_html := build_email_html(inner_html);
 
-  PERFORM net.http_post(
-    url := 'https://api.resend.com/emails',
-    headers := jsonb_build_object(
-      'Authorization', 'Bearer ' || resend_key,
-      'Content-Type', 'application/json'
-    ),
-    body := jsonb_build_object(
-      'from', 'The Benin Chorale & Philharmonic <info@beninchoraleandphilharmonic.com>',
-      'to', msg.email,
-      'reply_to', 'info@beninchoraleandphilharmonic.com',
-      'subject', 'Re: ' || msg.subject,
-      'html', full_html
-    )
+  PERFORM send_email(
+    'contact_reply',
+    msg.email,
+    'Re: ' || msg.subject,
+    full_html,
+    'The Benin Chorale & Philharmonic <info@beninchoraleandphilharmonic.com>',
+    'info@beninchoraleandphilharmonic.com'
   );
 
   RETURN NEW;

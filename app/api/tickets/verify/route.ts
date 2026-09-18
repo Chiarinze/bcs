@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   });
   if (limited) return limited;
 
-  const { reference, event_id, buyer_name, buyer_email, category, coupon_code } =
+  const { reference, event_id, buyer_name, buyer_email, category, coupon_code, subscribe } =
     await req.json();
 
   if (!reference || !event_id || !buyer_name || !buyer_email || !category) {
@@ -172,6 +172,16 @@ export async function POST(req: NextRequest) {
     ]);
 
     if (insertError) throw insertError;
+
+    // Opt-in to the mailing list (checkbox on the purchase form).
+    if (subscribe === true) {
+      const { error: subError } = await supabase.rpc("upsert_subscriber", {
+        p_email: buyer_email,
+        p_name: buyer_name,
+        p_source: "ticket",
+      });
+      if (subError) console.error("Failed to add subscriber:", subError.message);
+    }
 
     if (validatedCouponCode) {
       await supabase.rpc("increment_coupon_usage", {

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import Button from "@/components/ui/Button";
 import { Mail, MailOpen, Reply, Trash2, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
+import usePolling from "@/hooks/usePolling";
 import type { ContactMessage, ContactReply, ContactStatus } from "@/types";
 
 type Filter = "all" | ContactStatus;
@@ -49,8 +50,9 @@ export default function AdminContactPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const loadList = useCallback(async () => {
-    setLoading(true);
+  // `silent` skips the loading state so background refreshes don't flicker.
+  const loadList = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const qs = new URLSearchParams({ page: String(page) });
     if (filter !== "all") qs.set("status", filter);
     const res = await fetch(`/api/admin/contact?${qs}`);
@@ -67,6 +69,9 @@ export default function AdminContactPage() {
   useEffect(() => {
     loadList();
   }, [loadList]);
+
+  // Pick up new messages while the inbox is open, visible and online.
+  usePolling(() => loadList(true), 30000);
 
   useEffect(() => {
     if (!openId) {
