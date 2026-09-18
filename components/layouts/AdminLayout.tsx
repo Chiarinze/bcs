@@ -18,6 +18,8 @@ import {
   Music,
   Menu,
   X,
+  Settings,
+  Star,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -44,6 +46,8 @@ export default function AdminLayout({
     { href: "/admin/attendance", label: "Attendance", icon: ClipboardCheck },
     { href: "/admin/recital", label: "Recital", icon: Music },
     { href: "/admin/grants", label: "Grants", icon: Award },
+    { href: "/admin/performances", label: "Performances", icon: Star },
+    { href: "/admin/site-content", label: "Site Content", icon: Settings },
   ];
 
   async function handleLogout() {

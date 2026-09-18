@@ -70,8 +70,26 @@ export interface Profile {
   membership_id: string | null;
   closed_at: string | null;
   closure_reason: string | null;
+  bio: string | null;
+  slug: string | null;
   created_at: string;
 }
+
+/** Fields of a profile that are safe to render on public pages. */
+export type PublicProfile = Pick<
+  Profile,
+  | "id"
+  | "first_name"
+  | "last_name"
+  | "other_name"
+  | "photo_url"
+  | "bio"
+  | "slug"
+  | "ensemble_arm"
+  | "choir_part"
+  | "orchestra_instrument"
+  | "membership_status"
+>;
 
 export interface SignupData {
   first_name: string;
@@ -113,8 +131,67 @@ export interface MemberRole {
   category: RoleCategory;
   assigned_to: string | null;
   choir_part_required: string | null;
+  sort_order: number;
   created_at: string;
-  assignee?: Pick<Profile, "id" | "first_name" | "last_name" | "photo_url" | "choir_part"> | null;
+  assignee?: Pick<Profile, "id" | "first_name" | "last_name" | "photo_url" | "choir_part" | "bio" | "slug"> | null;
+}
+
+/** A role together with the public profile of the member holding it. */
+export interface LeadershipEntry {
+  role: Pick<MemberRole, "id" | "title" | "category" | "sort_order">;
+  profile: PublicProfile;
+}
+
+// ========== Site Content (admin-managed copy) ==========
+
+export interface WhatWeDoItem {
+  title: string;
+  description: string;
+}
+
+export interface AboutContent {
+  tagline: string;
+  home_intro: string;
+  intro: string[];
+  mission: string;
+  vision: string;
+  what_we_do: WhatWeDoItem[];
+  repertoire_intro: string;
+  repertoire: string[];
+  services: string;
+  join_us: string;
+  arms: string[];
+  management_units: string[];
+}
+
+export interface ContactContent {
+  tagline: string;
+  phone: string;
+  email: string;
+  facebook: string;
+  instagram: string;
+  description: string;
+  digital_services_intro: string;
+  digital_services: string[];
+}
+
+export interface SiteContentMap {
+  about: AboutContent;
+  contact: ContactContent;
+}
+
+export type SiteContentKey = keyof SiteContentMap;
+
+export interface Performance {
+  id: string;
+  title: string;
+  performed_on: string;
+  location: string | null;
+  image_url: string;
+  image_blur_data: string | null;
+  link: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // ========== Attendance Types ==========

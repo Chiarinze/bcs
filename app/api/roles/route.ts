@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { requireAdmin } from "@/lib/requireAdmin";
+import { revalidatePath } from "next/cache";
 
 // GET: list all roles with assignee info
 export async function GET() {
@@ -11,8 +12,9 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("member_roles")
-    .select("*, assignee:profiles!assigned_to(id, first_name, last_name, photo_url, choir_part)")
+    .select("*, assignee:profiles!assigned_to(id, first_name, last_name, photo_url, choir_part, bio, slug)")
     .order("category")
+    .order("sort_order")
     .order("title");
 
   if (error) {
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (admin instanceof NextResponse) return admin;
 
   const body = await req.json();
-  const { title, category, choir_part_required } = body;
+  const { title, category, choir_part_required, sort_order } = body;
 
   if (!title?.trim()) {
     return NextResponse.json({ error: "Role title is required" }, { status: 400 });
@@ -46,6 +48,7 @@ export async function POST(req: NextRequest) {
       title: title.trim(),
       category,
       choir_part_required: choir_part_required || null,
+      sort_order: Number.isInteger(sort_order) ? sort_order : 0,
     })
     .select("*")
     .single();
@@ -96,6 +99,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    revalidatePath("/about");
     return NextResponse.json({ success: true, action: "unassigned" });
   }
 
@@ -147,7 +151,40 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  revalidatePath("/about");
   return NextResponse.json({ success: true, action: "assigned" });
+}
+
+// PATCH: set the display order of roles on the public About page
+// Body: { order: [{ id, sort_order }, ...] }
+export async function PATCH(req: NextRequest) {
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
+
+  const body = await req.json().catch(() => ({}));
+  const order = Array.isArray(body.order) ? body.order : [];
+
+  const valid = order.every(
+    (o: { id?: unknown; sort_order?: unknown }) =>
+      typeof o.id === "string" && Number.isInteger(o.sort_order)
+  );
+  if (!valid || order.length === 0) {
+    return NextResponse.json({ error: "order must be a list of { id, sort_order }" }, { status: 400 });
+  }
+
+  const supabase = createServerSupabase();
+  for (const { id, sort_order } of order as { id: string; sort_order: number }[]) {
+    const { error } = await supabase
+      .from("member_roles")
+      .update({ sort_order })
+      .eq("id", id);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  }
+
+  revalidatePath("/about");
+  return NextResponse.json({ success: true });
 }
 
 // DELETE: delete a custom role

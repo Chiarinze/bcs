@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
 import { createServerSupabase } from "@/lib/supabaseServer";
-import { BoardOfDirectors } from "@/data";
+import { getLeadership } from "@/lib/leadership";
 
 export const revalidate = 3600;
 
@@ -23,22 +23,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/donate`, lastModified: now, changeFrequency: "yearly", priority: 0.5 },
   ];
 
-  // Board member pages are still sourced from the static data file until the
-  // leadership content moves to the database.
-  const boardRoutes: MetadataRoute.Sitemap = BoardOfDirectors.map((member) => ({
-    url: `${baseUrl}/about/board/${member.slug}`,
-    lastModified: now,
-    changeFrequency: "yearly",
-    priority: 0.6,
-  }));
-
+  let boardRoutes: MetadataRoute.Sitemap = [];
   let eventRoutes: MetadataRoute.Sitemap = [];
   let articleRoutes: MetadataRoute.Sitemap = [];
 
   try {
     const supabase = createServerSupabase();
 
-    const [{ data: events }, { data: articles }] = await Promise.all([
+    const [board, { data: events }, { data: articles }] = await Promise.all([
+      getLeadership("executive"),
       supabase
         .from("events")
         .select("slug, created_at, date")
@@ -49,6 +42,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select("slug, updated_at, published_at")
         .eq("status", "published"),
     ]);
+
+    boardRoutes = board
+      .filter((entry) => entry.profile.slug)
+      .map((entry) => ({
+        url: `${baseUrl}/about/board/${entry.profile.slug}`,
+        lastModified: now,
+        changeFrequency: "yearly" as const,
+        priority: 0.6,
+      }));
 
     eventRoutes = ((events || []) as EventRow[]).map((e) => ({
       url: `${baseUrl}/events/${e.slug}`,

@@ -154,6 +154,18 @@ export async function PATCH(req: NextRequest) {
     update.photo_url = v;
   }
 
+  if ("bio" in body) {
+    const v = body.bio;
+    if (v !== null && typeof v !== "string") {
+      return NextResponse.json({ error: "Invalid bio" }, { status: 400 });
+    }
+    const trimmed = typeof v === "string" ? v.trim() : "";
+    if (trimmed.length > 2000) {
+      return NextResponse.json({ error: "Bio must be 2000 characters or fewer" }, { status: 400 });
+    }
+    update.bio = trimmed || null;
+  }
+
   if (body.profile_completed === true) {
     update.profile_completed = true;
   }

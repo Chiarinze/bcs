@@ -1,16 +1,25 @@
 import Hero from "@/components/sections/Hero";
 import Script from "next/script";
-import { performances } from "@/data";
 import Image from "next/image";
 import Link from "next/link";
 import { RevealWrapper } from "@/components/RevealWrapper";
+import { getSiteContent } from "@/lib/siteContent";
+import { getPerformances } from "@/lib/performances";
+import { formatLongDate } from "@/lib/formatDate";
 import type { Metadata } from "next";
+
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [about, performances] = await Promise.all([
+    getSiteContent("about"),
+    getPerformances(),
+  ]);
+
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "PerformingGroup",
@@ -27,9 +36,8 @@ export default function HomePage() {
     },
   };
 
-  const randomPerformances = [...performances]
-    .sort(() => 0.5 - Math.random())
-    .slice(0, 3);
+  // Three most recent — deterministic so the cached HTML is stable for crawlers.
+  const featuredPerformances = performances.slice(0, 3);
 
   return (
     <div className="pt-[5.5rem] md:pt-0">
@@ -56,13 +64,7 @@ export default function HomePage() {
               className="text-gray-700 leading-relaxed text-lg max-w-3xl mx-auto"
               data-reveal
             >
-              The Benin Chorale and Philharmonic Nigeria is a premier musical
-              ensemble in Benin City dedicated to advancing choral and
-              orchestral music while preserving and innovating within
-              Nigeria&apos;s traditions. Comprised of over 70 professionals from
-              diverse fields, the group works to inspire and empower young
-              musicians, elevating them globally and discouraging them from
-              social vices.
+              {about.home_intro}
             </p>
 
             <div className="mt-10" data-reveal>
@@ -90,16 +92,19 @@ export default function HomePage() {
               className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8"
               data-reveal
             >
-              {randomPerformances.map((performance) => (
+              {featuredPerformances.map((performance) => (
                 <div
                   key={performance.id}
                   className="bg-[#415C41] rounded-2xl overflow-hidden text-white shadow-sm hover:shadow-md transition card-hover"
                 >
                   <div className="relative w-full h-56">
                     <Image
-                      src={performance.image}
+                      src={performance.image_url}
                       alt={performance.title}
                       fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      placeholder={performance.image_blur_data ? "blur" : "empty"}
+                      blurDataURL={performance.image_blur_data || undefined}
                       className="object-cover"
                     />
                   </div>
@@ -107,11 +112,9 @@ export default function HomePage() {
                     <h3 className="font-serif text-xl mb-1">
                       {performance.title}
                     </h3>
-                    {performance.date && (
-                      <p className="text-sm text-white/80 mb-3">
-                        {performance.date}
-                      </p>
-                    )}
+                    <p className="text-sm text-white/80 mb-3">
+                      {formatLongDate(performance.performed_on)}
+                    </p>
                     {performance.location && (
                       <p className="text-sm text-white/80 mb-4">
                         {performance.location}

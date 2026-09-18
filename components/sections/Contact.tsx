@@ -1,36 +1,44 @@
-"use client";
-
 import { Phone, Facebook, Mail, Instagram } from "lucide-react";
 import { RevealWrapper } from "@/components/RevealWrapper";
-import Button from "@/components/ui/Button";
+import type { ContactContent } from "@/types";
 
-export default function Contact() {
+interface Props {
+  content: ContactContent;
+}
+
+const SERVICE_COLORS = ["bg-bcs-green", "bg-bcs-accent", "bg-[#415C41]", "bg-[#98916D]"];
+
+export default function Contact({ content }: Props) {
   const contactOptions = [
-    {
+    content.phone && {
       name: "Phone",
       icon: <Phone size={28} />,
-      link: "tel:+2348078742682",
+      link: `tel:${content.phone.replace(/\s+/g, "")}`,
       color: "bg-bcs-green",
+      external: false,
     },
-    {
+    content.email && {
       name: "Email",
       icon: <Mail size={28} />,
-      link: "mailto:info@beninchoraleandphilharmonic.com",
+      link: `mailto:${content.email}`,
       color: "bg-bcs-accent",
+      external: false,
     },
-    {
+    content.facebook && {
       name: "Facebook",
       icon: <Facebook size={28} />,
-      link: "https://web.facebook.com/BcsNig/?_rdc=1&_rdr#",
+      link: content.facebook,
       color: "bg-[#3b5998]",
+      external: true,
     },
-    {
+    content.instagram && {
       name: "Instagram",
       icon: <Instagram size={28} />,
-      link: "https://www.instagram.com/the_benin_chorale_society/?igsh=MXVybmpseXkxOGQwZg%3D%3D",
+      link: content.instagram,
       color: "bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#962fbf]",
+      external: true,
     },
-  ];
+  ].filter((o): o is Exclude<typeof o, "" | false> => Boolean(o));
 
   return (
     <RevealWrapper>
@@ -41,90 +49,74 @@ export default function Contact() {
             <h1 className="text-4xl md:text-5xl font-serif text-bcs-green mb-4">
               Contact Us
             </h1>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              We’d love to hear from you. Whether for bookings, collaborations,
-              or general inquiries — reach out and let’s make music together.
-            </p>
+            <p className="text-gray-600 max-w-2xl mx-auto">{content.tagline}</p>
           </div>
 
           {/* CONTACT OPTIONS */}
-          <div
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 justify-center items-center mb-20"
-            data-reveal
-          >
-            {contactOptions.map((contact) => (
-              <a
-                key={contact.name}
-                href={contact.link}
-                target={
-                  contact.name === "Phone" || contact.name === "Email"
-                    ? "_self"
-                    : "_blank"
-                }
-                rel="noopener noreferrer"
-                className={`flex flex-col items-center justify-center gap-3 text-white rounded-2xl shadow-md hover:shadow-lg transition hover-lift py-8 ${contact.color}`}
-              >
-                <div>{contact.icon}</div>
-                <span className="font-medium">{contact.name}</span>
-              </a>
-            ))}
-          </div>
-
-          {/* DESCRIPTION */}
-          <div
-            className="max-w-3xl mx-auto text-gray-700 leading-relaxed mb-20"
-            data-reveal
-          >
-            <p>
-              We perform as a chorale, orchestra, band, and theatre group at
-              various events throughout the year. For bookings or more
-              information on our performances and services, contact us via any
-              of the platforms above.
-            </p>
-          </div>
-
-          {/* DIGITAL SERVICES */}
-          <div className="text-center" data-reveal>
-            <h2 className="text-2xl font-serif text-bcs-green mb-6">
-              Our Digital Services
-            </h2>
-            <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-              In addition to music, we offer creative digital services through
-              our in-house BCS Digital Consult team:
-            </p>
-
-            <div className="flex flex-wrap justify-center gap-4">
-              {[
-                { label: "Social Media Management", color: "bg-bcs-green" },
-                { label: "Graphics Design", color: "bg-bcs-accent" },
-                { label: "Video Editing", color: "bg-[#415C41]" },
-                {
-                  label: "Software / Website Development",
-                  color: "bg-[#98916D]",
-                },
-              ].map((service) => (
-                <span
-                  key={service.label}
-                  className={`text-sm text-white px-5 py-2 rounded-full ${service.color}`}
+          {contactOptions.length > 0 && (
+            <div
+              className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 justify-center items-center mb-20"
+              data-reveal
+            >
+              {contactOptions.map((contact) => (
+                <a
+                  key={contact.name}
+                  href={contact.link}
+                  target={contact.external ? "_blank" : "_self"}
+                  rel={contact.external ? "noopener noreferrer" : undefined}
+                  className={`flex flex-col items-center justify-center gap-3 text-white rounded-2xl shadow-md hover:shadow-lg transition hover-lift py-8 ${contact.color}`}
                 >
-                  {service.label}
-                </span>
+                  <div>{contact.icon}</div>
+                  <span className="font-medium">{contact.name}</span>
+                </a>
               ))}
             </div>
+          )}
 
-            <div className="mt-12">
-              <Button
-                variant="primary"
-                className="px-8 py-3"
-                onClick={() =>
-                  (window.location.href =
-                    "mailto:info@beninchoraleandphilharmonic.com")
-                }
+          {/* DESCRIPTION */}
+          {content.description && (
+            <div
+              className="max-w-3xl mx-auto text-gray-700 leading-relaxed mb-20"
+              data-reveal
+            >
+              <p>{content.description}</p>
+            </div>
+          )}
+
+          {/* DIGITAL SERVICES */}
+          {content.digital_services.length > 0 && (
+            <div className="text-center" data-reveal>
+              <h2 className="text-2xl font-serif text-bcs-green mb-6">
+                Our Digital Services
+              </h2>
+              {content.digital_services_intro && (
+                <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+                  {content.digital_services_intro}
+                </p>
+              )}
+              <div className="flex flex-wrap justify-center gap-4">
+                {content.digital_services.map((label, i) => (
+                  <span
+                    key={label}
+                    className={`text-sm text-white px-5 py-2 rounded-full ${SERVICE_COLORS[i % SERVICE_COLORS.length]}`}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {content.email && (
+            <div className="mt-12" data-reveal>
+              <a
+                href={`mailto:${content.email}`}
+                className="inline-flex items-center justify-center px-8 py-3 rounded-full font-medium bg-bcs-green text-white hover:bg-bcs-accent transition-colors hover-lift"
               >
                 Send us a message
-              </Button>
+              </a>
             </div>
-          </div>
+          )}
         </div>
       </section>
     </RevealWrapper>

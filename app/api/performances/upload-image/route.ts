@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
-import { requireAuth } from "@/lib/requireAuth";
+import { requireAdmin } from "@/lib/requireAdmin";
 import { detectImageType } from "@/lib/detectImageType";
 
+const BUCKET = "performance-images";
+
+// POST: multipart { file } → { url }
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth();
-  if (auth instanceof NextResponse) return auth;
+  const admin = await requireAdmin();
+  if (admin instanceof NextResponse) return admin;
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
@@ -13,14 +16,11 @@ export async function POST(req: NextRequest) {
   if (!file) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
-
   if (file.size > 5 * 1024 * 1024) {
     return NextResponse.json({ error: "Image must be under 5MB" }, { status: 400 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-
-  // Trust magic bytes — never the client-supplied content type.
   const detected = detectImageType(buffer);
   if (!detected) {
     return NextResponse.json(
@@ -30,23 +30,16 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServerSupabase();
-  // Store under the author's id so DELETE /api/articles/[slug] can scope its
-  // storage cleanup to the author's own paths (see H-2).
-  const fileName = `${auth.id}/${Date.now()}.${detected.ext}`;
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${detected.ext}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from("article-images")
-    .upload(fileName, buffer, {
-      contentType: detected.mime,
-    });
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(fileName, buffer, { contentType: detected.mime });
 
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const { data: publicUrlData } = supabase.storage
-    .from("article-images")
-    .getPublicUrl(fileName);
-
-  return NextResponse.json({ url: publicUrlData.publicUrl });
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(fileName);
+  return NextResponse.json({ url: data.publicUrl });
 }

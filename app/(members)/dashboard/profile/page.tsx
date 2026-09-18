@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { TextInput } from "@/components/ui/FormInputs";
 import Button from "@/components/ui/Button";
-import { User, Upload, X, Shield, Calendar, MapPin, Music, Mail } from "lucide-react";
+import { User, Upload, X, Shield, Calendar, MapPin, Music, Mail, FileText } from "lucide-react";
 import type { EnsembleArm, Profile } from "@/types";
 
 const CHOIR_PARTS = ["Soprano", "Alto", "Tenor", "Bass"] as const;
@@ -38,6 +38,7 @@ export default function ProfilePage() {
   const [otherName, setOtherName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [physicalAddress, setPhysicalAddress] = useState("");
+  const [bio, setBio] = useState("");
   const [ensembleArm, setEnsembleArm] = useState<EnsembleArm | "">("");
   const [choirPart, setChoirPart] = useState("");
   const [orchestraInstrument, setOrchestraInstrument] = useState("");
@@ -79,6 +80,7 @@ export default function ProfilePage() {
     setOtherName(p.other_name || "");
     setDateOfBirth(p.date_of_birth || "");
     setPhysicalAddress(p.physical_address || "");
+    setBio(p.bio || "");
     setEnsembleArm(p.ensemble_arm || "");
     setChoirPart(p.choir_part || "");
     setOrchestraInstrument(p.orchestra_instrument || "");
@@ -175,6 +177,7 @@ export default function ProfilePage() {
       other_name: otherName.trim() || null,
       date_of_birth: dateOfBirth || null,
       physical_address: physicalAddress.trim() || null,
+      bio: bio.trim() || null,
       ensemble_arm: ensembleArm as EnsembleArm,
       choir_part: needsChoir ? choirPart : null,
       orchestra_instrument: needsOrchestra ? orchestraInstrument : null,
@@ -394,6 +397,23 @@ export default function ProfilePage() {
               />
             </div>
 
+            <div className="space-y-1">
+              <label htmlFor="bio" className="text-sm font-medium text-bcs-green">
+                Public Bio
+              </label>
+              <textarea
+                id="bio"
+                name="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="A short introduction shown on the public members page. Separate paragraphs with a blank line."
+                rows={5}
+                maxLength={2000}
+                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm resize-y focus:ring-2 focus:ring-bcs-accent focus:border-bcs-accent outline-none transition"
+              />
+              <p className="text-xs text-gray-400 text-right">{bio.length}/2000</p>
+            </div>
+
             {/* Ensemble Arm */}
             <div className="space-y-1">
               <label htmlFor="ensemble_arm" className="text-sm font-medium text-bcs-green">
@@ -529,6 +549,11 @@ export default function ProfilePage() {
                 icon={<MapPin className="w-4 h-4" />}
                 label="Physical Address"
                 value={profile.physical_address || "—"}
+              />
+              <InfoField
+                icon={<FileText className="w-4 h-4" />}
+                label="Public Bio"
+                value={profile.bio || "—"}
               />
               <InfoField
                 icon={<Music className="w-4 h-4" />}

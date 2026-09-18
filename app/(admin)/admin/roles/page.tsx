@@ -12,6 +12,9 @@ import {
   Trash2,
   User,
   X,
+  ArrowUp,
+  ArrowDown,
+  FileText,
 } from "lucide-react";
 import type { MemberRole, RoleCategory } from "@/types";
 
@@ -34,6 +37,11 @@ export default function AdminRolesPage() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
+
+  // Bio modal state (public bio of the member holding a role)
+  const [bioRole, setBioRole] = useState<MemberRole | null>(null);
+  const [bioText, setBioText] = useState("");
+  const [bioSaving, setBioSaving] = useState(false);
 
   // Create role modal state
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -160,6 +168,56 @@ export default function AdminRolesPage() {
     setActionLoading(null);
   }
 
+  // Swap a role with its neighbour within the same category and persist the
+  // new order for the public About page.
+  async function handleMove(role: MemberRole, dir: -1 | 1) {
+    const siblings = roles.filter((r) => r.category === role.category);
+    const i = siblings.findIndex((r) => r.id === role.id);
+    const j = i + dir;
+    if (j < 0 || j >= siblings.length) return;
+
+    const reordered = [...siblings];
+    [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+    const order = reordered.map((r, idx) => ({ id: r.id, sort_order: idx }));
+
+    setActionLoading(role.id);
+    const res = await fetch("/api/roles", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order }),
+    });
+    if (res.ok) {
+      fetchRoles();
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to reorder");
+    }
+    setActionLoading(null);
+  }
+
+  function openBioModal(role: MemberRole) {
+    setBioRole(role);
+    setBioText(role.assignee?.bio || "");
+  }
+
+  async function handleSaveBio() {
+    if (!bioRole?.assignee) return;
+    setBioSaving(true);
+    const res = await fetch(`/api/members/${bioRole.assignee.id}/bio`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bio: bioText }),
+    });
+    if (res.ok) {
+      setBioRole(null);
+      fetchRoles();
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to save bio");
+    }
+    setBioSaving(false);
+  }
+
   const executiveRoles = roles.filter((r) => r.category === "executive");
   const managementRoles = roles.filter((r) => r.category === "management");
 
@@ -276,6 +334,8 @@ export default function AdminRolesPage() {
           onAssign={openAssignModal}
           onUnassign={handleUnassign}
           onDelete={handleDeleteRole}
+          onMove={handleMove}
+          onEditBio={openBioModal}
         />
 
         {/* Management Roles */}
@@ -287,7 +347,44 @@ export default function AdminRolesPage() {
           onAssign={openAssignModal}
           onUnassign={handleUnassign}
           onDelete={handleDeleteRole}
+          onMove={handleMove}
+          onEditBio={openBioModal}
         />
+
+        {/* Bio Modal */}
+        {bioRole && bioRole.assignee && (
+          <>
+            <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setBioRole(null)} />
+            <div className="fixed inset-x-4 top-[10%] sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bg-white rounded-2xl shadow-xl z-50 w-full sm:max-w-lg flex flex-col">
+              <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h2 className="font-semibold text-gray-900">Public bio</h2>
+                  <p className="text-xs text-gray-500">
+                    {bioRole.assignee.first_name} {bioRole.assignee.last_name} — {bioRole.title}
+                  </p>
+                </div>
+                <button onClick={() => setBioRole(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-5 space-y-3">
+                <textarea
+                  value={bioText}
+                  onChange={(e) => setBioText(e.target.value)}
+                  rows={10}
+                  maxLength={2000}
+                  placeholder="Shown on the About page and the member's public profile. Separate paragraphs with a blank line."
+                  className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm resize-y focus:ring-2 focus:ring-bcs-accent focus:border-bcs-accent outline-none"
+                />
+                <p className="text-xs text-gray-400 text-right">{bioText.length}/2000</p>
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveBio} loading={bioSaving}>Save bio</Button>
+                  <Button variant="outline" onClick={() => setBioRole(null)}>Cancel</Button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Assign Modal */}
         {assigningRole && (
@@ -400,6 +497,8 @@ function RoleSection({
   onAssign,
   onUnassign,
   onDelete,
+  onMove,
+  onEditBio,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -408,6 +507,8 @@ function RoleSection({
   onAssign: (role: MemberRole) => void;
   onUnassign: (roleId: string) => void;
   onDelete: (roleId: string) => void;
+  onMove: (role: MemberRole, dir: -1 | 1) => void;
+  onEditBio: (role: MemberRole) => void;
 }) {
   return (
     <div>
@@ -482,6 +583,31 @@ function RoleSection({
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => onMove(role, -1)}
+                          disabled={actionLoading === role.id}
+                          className="p-1.5 rounded-lg text-gray-300 hover:text-bcs-green hover:bg-gray-100 disabled:opacity-50 transition"
+                          title="Move up"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => onMove(role, 1)}
+                          disabled={actionLoading === role.id}
+                          className="p-1.5 rounded-lg text-gray-300 hover:text-bcs-green hover:bg-gray-100 disabled:opacity-50 transition"
+                          title="Move down"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                        {role.assignee && (
+                          <button
+                            onClick={() => onEditBio(role)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium hover:bg-gray-200 transition"
+                            title="Edit public bio"
+                          >
+                            <FileText className="w-3.5 h-3.5" /> Bio
+                          </button>
+                        )}
                         {role.assignee ? (
                           <button
                             onClick={() => onUnassign(role.id)}
@@ -555,13 +681,22 @@ function RoleSection({
                         {role.assignee.first_name} {role.assignee.last_name}
                       </span>
                     </div>
-                    <button
-                      onClick={() => onUnassign(role.id)}
-                      disabled={actionLoading === role.id}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 disabled:opacity-50 transition"
-                    >
-                      <UserMinus className="w-3 h-3" /> Remove
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => onEditBio(role)}
+                        className="p-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+                        title="Edit public bio"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => onUnassign(role.id)}
+                        disabled={actionLoading === role.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 disabled:opacity-50 transition"
+                      >
+                        <UserMinus className="w-3 h-3" /> Remove
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <button
@@ -572,6 +707,15 @@ function RoleSection({
                     <UserPlus className="w-4 h-4" /> Assign Member
                   </button>
                 )}
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span>Order on About page:</span>
+                  <button onClick={() => onMove(role, -1)} disabled={actionLoading === role.id} className="p-1 hover:text-bcs-green disabled:opacity-50">
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => onMove(role, 1)} disabled={actionLoading === role.id} className="p-1 hover:text-bcs-green disabled:opacity-50">
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

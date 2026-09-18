@@ -1,77 +1,77 @@
-import { BoardOfDirectors } from "@/data";
 import Image from "next/image";
-// import { Mail, Linkedin } from "lucide-react";
+import Script from "next/script";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { BackButton } from "@/components/ui/BackButton";
 import { RevealWrapper } from "@/components/RevealWrapper";
-import Script from "next/script";
-import type { Metadata } from "next";
+import { getBoardMemberBySlug, fullName } from "@/lib/leadership";
+
+export const revalidate = 3600;
 
 interface BoardMemberPageProps {
   params: Promise<{ slug: string }>;
 }
 
-// ✅ Use the correct async destructuring
+const SITE = "https://www.beninchoraleandphilharmonic.com";
+
 export async function generateMetadata({
   params,
 }: BoardMemberPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const member = BoardOfDirectors.find((m) => m.slug === slug);
+  const entry = await getBoardMemberBySlug(slug);
 
-  if (!member) {
+  if (!entry) {
     return {
-      title: "Board Member Not Found | The Benin Chorale & Philharmonic",
+      title: "Board Member Not Found",
       description:
         "Meet our board members who lead The Benin Chorale & Philharmonic.",
     };
   }
 
+  const name = fullName(entry.profile);
+  const description =
+    entry.profile.bio?.slice(0, 160) ||
+    `${name}, ${entry.role.title} at The Benin Chorale & Philharmonic.`;
+
   return {
-    title: `${member.name} | ${member.position} | The Benin Chorale & Philharmonic`,
-    description:
-      member.about?.[0]?.text.slice(0, 160) || "Board member profile",
-    alternates: {
-      canonical: `https://www.beninchoraleandphilharmonic.com/about/board/${slug}`,
-    },
+    title: `${name} | ${entry.role.title}`,
+    description,
+    alternates: { canonical: `/about/board/${slug}` },
     openGraph: {
-      title: `${member.name} - ${member.position}`,
-      description: member.about?.[0]?.text.slice(0, 200),
-      images: [
-        {
-          url: member.image.src,
-          width: 1200,
-          height: 630,
-          alt: `${member.name} - ${member.position}`,
-        },
-      ],
+      title: `${name} - ${entry.role.title}`,
+      description,
       type: "profile",
+      url: `${SITE}/about/board/${slug}`,
+      images: entry.profile.photo_url
+        ? [{ url: entry.profile.photo_url, alt: `${name} - ${entry.role.title}` }]
+        : undefined,
     },
   };
 }
 
-export default async function BoardMemberPage({
-  params,
-}: BoardMemberPageProps) {
+export default async function BoardMemberPage({ params }: BoardMemberPageProps) {
   const { slug } = await params;
-  const member = BoardOfDirectors.find((m) => m.slug === slug);
+  const entry = await getBoardMemberBySlug(slug);
+  if (!entry) notFound();
 
-  if (!member) {
-    return (
-      <div className="py-20 text-center text-gray-600">
-        <BackButton />
-        <p>Board member not found.</p>
-      </div>
-    );
-  }
-
-  // const { contact } = member;
+  const name = fullName(entry.profile);
+  const paragraphs = (entry.profile.bio || "")
+    .split(/\n{2,}|\r\n\r\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
   const profileSchema = {
     "@context": "https://schema.org",
     "@type": "Person",
-    name: member.name,
-    jobTitle: member.position,
-    image: member.image.src,
-    url: `https://www.beninchoraleandphilharmonic.com/about/board/${slug}`,
+    name,
+    jobTitle: entry.role.title,
+    image: entry.profile.photo_url || undefined,
+    url: `${SITE}/about/board/${slug}`,
+    worksFor: {
+      "@type": "PerformingGroup",
+      name: "The Benin Chorale & Philharmonic",
+      url: SITE,
+    },
   };
 
   return (
@@ -79,72 +79,43 @@ export default async function BoardMemberPage({
       <Script
         id="profile-schema"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(profileSchema),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(profileSchema) }}
       />
 
       <section className="py-20 px-4 bg-[#F9F9F7] min-h-screen">
         <BackButton />
         <RevealWrapper>
           <div className="max-w-4xl mx-auto flex flex-col items-center gap-8">
-            <div
-              className="flex flex-col items-center text-center gap-4"
-              data-reveal
-            >
-              <Image
-                src={member.image}
-                alt={`${member.name}, ${member.position}`}
-                className="w-48 h-48 object-cover rounded-full mb-6"
-                sizes="(max-width: 768px) 60vw, 200px"
-                priority
-              />
-              <h1 className="text-4xl font-serif">{member.name}</h1>
-              <p className="text-bcs-muted text-lg">{member.position}</p>
+            <div className="flex flex-col items-center text-center gap-4" data-reveal>
+              {entry.profile.photo_url ? (
+                <Image
+                  src={entry.profile.photo_url}
+                  alt={`${name}, ${entry.role.title}`}
+                  width={192}
+                  height={192}
+                  className="w-48 h-48 object-cover rounded-full mb-6"
+                  sizes="(max-width: 768px) 60vw, 200px"
+                  priority
+                />
+              ) : (
+                <div className="w-48 h-48 rounded-full mb-6 bg-bcs-green/10 flex items-center justify-center text-bcs-green font-serif text-4xl">
+                  {entry.profile.first_name?.[0]}
+                  {entry.profile.last_name?.[0]}
+                </div>
+              )}
+              <h1 className="text-4xl font-serif">{name}</h1>
+              <p className="text-bcs-muted text-lg">{entry.role.title}</p>
             </div>
 
-            <div className="mt-8 space-y-6 text-gray-800" data-reveal>
-              {member.about.map((paragraph) => (
-                <p key={paragraph.id} className="leading-relaxed">
-                  {paragraph.text}
-                </p>
-              ))}
-            </div>
-
-            {/* {contact && (contact.email || contact.linkedin) && (
-              <div
-                className="mt-10 w-full grid md:grid-cols-2 gap-6"
-                data-reveal
-              >
-                {contact.email && (
-                  <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition">
-                    <Mail className="text-bcs-green" size={28} />
-                    <a
-                      href={`mailto:${contact.email}`}
-                      className="text-bcs-green hover:text-bcs-accent font-medium"
-                    >
-                      {contact.email}
-                    </a>
-                  </div>
-                )}
-                {contact.linkedin && (
-                  <div className="flex items-center gap-4 p-4 bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition">
-                    <Linkedin className="text-bcs-green" size={28} />
-                    <a
-                      href={contact.linkedin}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-bcs-green hover:text-bcs-accent font-medium"
-                    >
-                      LinkedIn Profile
-                    </a>
-                  </div>
-                )}
+            {paragraphs.length > 0 && (
+              <div className="mt-8 space-y-6 text-gray-800" data-reveal>
+                {paragraphs.map((paragraph, i) => (
+                  <p key={i} className="leading-relaxed">
+                    {paragraph}
+                  </p>
+                ))}
               </div>
-            )} */}
-
-            {/* Separator */}
-            <div className="w-full h-[1px] bg-bcs-accent my-8" data-reveal />
+            )}
           </div>
         </RevealWrapper>
       </section>
