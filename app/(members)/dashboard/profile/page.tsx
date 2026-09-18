@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { TextInput } from "@/components/ui/FormInputs";
 import Button from "@/components/ui/Button";
 import { User, Upload, X, Shield, Calendar, MapPin, Music, Mail, FileText } from "lucide-react";
+import DirectoryVisibilityCard from "@/components/members/DirectoryVisibilityCard";
 import type { EnsembleArm, Profile } from "@/types";
 
 const CHOIR_PARTS = ["Soprano", "Alto", "Tenor", "Bass"] as const;
@@ -589,6 +590,24 @@ export default function ProfilePage() {
               />
             </div>
           </div>
+        )}
+
+        {!editing && (
+          <DirectoryVisibilityCard
+            hidden={profile.directory_hidden}
+            request={profile.directory_request}
+            requestAt={profile.directory_request_at}
+            verified={!!profile.is_verified && !!profile.profile_completed}
+            slug={profile.slug}
+            onChange={({ hidden, request, requestAt }) =>
+              setProfile({
+                ...profile,
+                directory_hidden: hidden,
+                directory_request: request,
+                directory_request_at: requestAt,
+              })
+            }
+          />
         )}
       </div>
     </div>

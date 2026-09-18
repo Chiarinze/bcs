@@ -1,6 +1,7 @@
 import { MetadataRoute } from "next";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { getLeadership } from "@/lib/leadership";
+import { getDirectoryGroups } from "@/lib/directory";
 
 export const revalidate = 3600;
 
@@ -15,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
     { url: `${baseUrl}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/members`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/performances`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/events`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${baseUrl}/articles`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
@@ -24,14 +26,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   let boardRoutes: MetadataRoute.Sitemap = [];
+  let memberRoutes: MetadataRoute.Sitemap = [];
   let eventRoutes: MetadataRoute.Sitemap = [];
   let articleRoutes: MetadataRoute.Sitemap = [];
 
   try {
     const supabase = createServerSupabase();
 
-    const [board, { data: events }, { data: articles }] = await Promise.all([
+    const [board, groups, { data: events }, { data: articles }] = await Promise.all([
       getLeadership("executive"),
+      getDirectoryGroups(),
       supabase
         .from("events")
         .select("slug, created_at, date")
@@ -52,6 +56,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.6,
       }));
 
+    memberRoutes = groups
+      .flatMap((g) => g.members)
+      .filter((m) => m.slug)
+      .map((m) => ({
+        url: `${baseUrl}/members/${m.slug}`,
+        lastModified: now,
+        changeFrequency: "monthly" as const,
+        priority: 0.5,
+      }));
+
     eventRoutes = ((events || []) as EventRow[]).map((e) => ({
       url: `${baseUrl}/events/${e.slug}`,
       lastModified: new Date(e.created_at || e.date || now),
@@ -70,5 +84,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("sitemap: failed to load dynamic routes", err);
   }
 
-  return [...staticRoutes, ...boardRoutes, ...eventRoutes, ...articleRoutes];
+  return [...staticRoutes, ...boardRoutes, ...memberRoutes, ...eventRoutes, ...articleRoutes];
 }

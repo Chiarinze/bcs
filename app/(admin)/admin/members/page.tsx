@@ -1,5 +1,6 @@
 import AdminLayout from "@/components/layouts/AdminLayout";
 import MembersList from "@/components/admin/MembersList";
+import DirectoryRequests from "@/components/admin/DirectoryRequests";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import type { Profile } from "@/types";
 
@@ -44,6 +45,9 @@ export default async function AdminMembersPage({
 
   return (
     <AdminLayout>
+      <div className="mb-6">
+        <DirectoryRequests />
+      </div>
       <MembersList
         initialMembers={members}
         initialFilter={filter}

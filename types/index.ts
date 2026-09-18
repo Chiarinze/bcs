@@ -72,8 +72,14 @@ export interface Profile {
   closure_reason: string | null;
   bio: string | null;
   slug: string | null;
+  directory_hidden: boolean;
+  directory_request: DirectoryRequest | null;
+  directory_request_at: string | null;
+  directory_request_note: string | null;
   created_at: string;
 }
+
+export type DirectoryRequest = "hide" | "show";
 
 /** Fields of a profile that are safe to render on public pages. */
 export type PublicProfile = Pick<
@@ -89,7 +95,14 @@ export type PublicProfile = Pick<
   | "choir_part"
   | "orchestra_instrument"
   | "membership_status"
+  | "year_inducted"
 >;
+
+export interface DirectoryGroup {
+  status: MembershipStatus;
+  label: string;
+  members: PublicProfile[];
+}
 
 export interface SignupData {
   first_name: string;
