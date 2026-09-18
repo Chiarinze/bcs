@@ -67,12 +67,22 @@ export async function POST(req: NextRequest) {
     let validatedCouponCode: string | null = null;
 
     if (coupon_code) {
-      const { data: coupon } = await supabase
+      // select("*"): usage_limit is optional in the schema, and naming a
+      // missing column makes PostgREST return an error with data = null.
+      const { data: coupon, error: couponError } = await supabase
         .from("coupon_codes")
-        .select("code, discount_percent, is_active, usage_limit, usage_count")
+        .select("*")
         .eq("event_id", event_id)
         .eq("code", coupon_code)
         .maybeSingle();
+
+      if (couponError) {
+        console.error("Coupon lookup failed:", couponError.message);
+        return NextResponse.json(
+          { error: "Could not verify the coupon. Please try again." },
+          { status: 500 }
+        );
+      }
 
       if (!coupon || !coupon.is_active) {
         return NextResponse.json(

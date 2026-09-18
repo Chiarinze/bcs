@@ -132,3 +132,9 @@
 .border-bcs-accent {
   border-color: var(--bcs-accent);
 }
+
+/* Top progress bar used by PageLoader (loading.tsx) */
+@keyframes loader {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}

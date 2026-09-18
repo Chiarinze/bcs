@@ -168,8 +168,9 @@ export default function AdminRolesPage() {
     setActionLoading(null);
   }
 
-  // Swap a role with its neighbour within the same category and persist the
-  // new order for the public About page.
+  // Swap a role with its neighbour within the same category. The list
+  // updates immediately; the server order is persisted in the background
+  // and rolled back if that fails.
   async function handleMove(role: MemberRole, dir: -1 | 1) {
     const siblings = roles.filter((r) => r.category === role.category);
     const i = siblings.findIndex((r) => r.id === role.id);
@@ -179,20 +180,27 @@ export default function AdminRolesPage() {
     const reordered = [...siblings];
     [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
     const order = reordered.map((r, idx) => ({ id: r.id, sort_order: idx }));
+    const orderById = new Map(order.map((o) => [o.id, o.sort_order]));
 
-    setActionLoading(role.id);
+    const previous = roles;
+    setRoles((prev) =>
+      prev
+        .map((r) => (orderById.has(r.id) ? { ...r, sort_order: orderById.get(r.id)! } : r))
+        .sort((a, b) =>
+          a.category === b.category ? a.sort_order - b.sort_order || a.title.localeCompare(b.title) : 0
+        )
+    );
+
     const res = await fetch("/api/roles", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order }),
     });
-    if (res.ok) {
-      fetchRoles();
-    } else {
-      const data = await res.json();
+    if (!res.ok) {
+      setRoles(previous);
+      const data = await res.json().catch(() => ({}));
       alert(data.error || "Failed to reorder");
     }
-    setActionLoading(null);
   }
 
   function openBioModal(role: MemberRole) {
@@ -546,7 +554,7 @@ function RoleSection({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {roles.map((role) => (
+                {roles.map((role, index) => (
                   <tr key={role.id} className="hover:bg-gray-50/60 transition-colors">
                     <td className="px-5 py-4 font-medium text-gray-900">{role.title}</td>
                     <td className="px-5 py-4">
@@ -583,22 +591,11 @@ function RoleSection({
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => onMove(role, -1)}
-                          disabled={actionLoading === role.id}
-                          className="p-1.5 rounded-lg text-gray-300 hover:text-bcs-green hover:bg-gray-100 disabled:opacity-50 transition"
-                          title="Move up"
-                        >
-                          <ArrowUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => onMove(role, 1)}
-                          disabled={actionLoading === role.id}
-                          className="p-1.5 rounded-lg text-gray-300 hover:text-bcs-green hover:bg-gray-100 disabled:opacity-50 transition"
-                          title="Move down"
-                        >
-                          <ArrowDown className="w-3.5 h-3.5" />
-                        </button>
+                        <OrderControl
+                          index={index}
+                          count={roles.length}
+                          onMove={(dir) => onMove(role, dir)}
+                        />
                         {role.assignee && (
                           <button
                             onClick={() => onEditBio(role)}
@@ -643,7 +640,7 @@ function RoleSection({
 
           {/* Mobile Cards */}
           <div className="md:hidden divide-y divide-gray-50">
-            {roles.map((role) => (
+            {roles.map((role, index) => (
               <div key={role.id} className="p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
@@ -707,20 +704,47 @@ function RoleSection({
                     <UserPlus className="w-4 h-4" /> Assign Member
                   </button>
                 )}
-                <div className="flex items-center gap-2 text-xs text-gray-400">
-                  <span>Order on About page:</span>
-                  <button onClick={() => onMove(role, -1)} disabled={actionLoading === role.id} className="p-1 hover:text-bcs-green disabled:opacity-50">
-                    <ArrowUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={() => onMove(role, 1)} disabled={actionLoading === role.id} className="p-1 hover:text-bcs-green disabled:opacity-50">
-                    <ArrowDown className="w-3.5 h-3.5" />
-                  </button>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>Order on About page</span>
+                  <OrderControl
+                    index={index}
+                    count={roles.length}
+                    onMove={(dir) => onMove(role, dir)}
+                  />
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── Up/down order control ─── */
+function OrderControl({
+  index,
+  count,
+  onMove,
+}: {
+  index: number;
+  count: number;
+  onMove: (dir: -1 | 1) => void;
+}) {
+  const btn =
+    "p-1.5 rounded-md text-bcs-green hover:bg-bcs-green hover:text-white disabled:text-gray-300 disabled:hover:bg-transparent disabled:cursor-not-allowed transition";
+  return (
+    <div
+      className="inline-flex items-center gap-0.5 rounded-lg border border-bcs-green/30 bg-bcs-green/5 px-1"
+      title="Position on the About page"
+    >
+      <span className="px-1.5 text-[11px] font-semibold text-bcs-green tabular-nums">{index + 1}</span>
+      <button type="button" onClick={() => onMove(-1)} disabled={index === 0} className={btn} title="Move up">
+        <ArrowUp className="w-4 h-4" />
+      </button>
+      <button type="button" onClick={() => onMove(1)} disabled={index >= count - 1} className={btn} title="Move down">
+        <ArrowDown className="w-4 h-4" />
+      </button>
     </div>
   );
 }
