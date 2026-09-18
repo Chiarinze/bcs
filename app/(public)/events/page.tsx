@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
+import { createServerSupabase } from "@/lib/supabaseServer";
 import { format } from "date-fns";
 import { Event } from "@/types";
 import EventImage from "@/components/common/EventImage";
@@ -14,6 +14,7 @@ export const metadata = {
 };
 
 export default async function EventsPage() {
+  const supabase = createServerSupabase();
   const { data: events, error } = await supabase
     .from("events")
     .select("*")

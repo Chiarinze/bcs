@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabaseClient";
+import { createServerSupabase } from "@/lib/supabaseServer";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { format } from "date-fns";
@@ -24,6 +24,7 @@ interface EventDocument {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const supabase = createServerSupabase();
   const { slug } = await params;
 
   const { data: event } = await supabase
@@ -70,6 +71,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function EventDetail({ params }: Props) {
+  const supabase = createServerSupabase();
   const { slug } = await params;
 
   const { data: event, error } = await supabase

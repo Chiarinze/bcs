@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { supabase } from "@/lib/supabaseClient";
+import { createServerSupabase } from "@/lib/supabaseServer";
 import { notFound, redirect } from "next/navigation";
 import InternalRegistrationForm from "@/components/events/InternalRegistrationForm";
 import Link from "next/link";
@@ -11,6 +11,7 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const supabase = createServerSupabase();
   const { slug } = await params;
 
   const { data: event } = await supabase
@@ -52,6 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function EventRegisterPage({ params }: Props) {
+  const supabase = createServerSupabase();
   const { slug } = await params;
 
   // Fetch event details
