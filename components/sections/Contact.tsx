@@ -1,5 +1,6 @@
 import { Phone, Facebook, Mail, Instagram } from "lucide-react";
 import { RevealWrapper } from "@/components/RevealWrapper";
+import ContactForm from "@/components/sections/ContactForm";
 import type { ContactContent } from "@/types";
 
 interface Props {
@@ -76,12 +77,20 @@ export default function Contact({ content }: Props) {
           {/* DESCRIPTION */}
           {content.description && (
             <div
-              className="max-w-3xl mx-auto text-gray-700 leading-relaxed mb-20"
+              className="max-w-3xl mx-auto text-gray-700 leading-relaxed mb-16"
               data-reveal
             >
               <p>{content.description}</p>
             </div>
           )}
+
+          {/* CONTACT FORM */}
+          <div className="max-w-3xl mx-auto mb-24" data-reveal>
+            <h2 className="text-2xl font-serif text-bcs-green mb-6">
+              Send us a message
+            </h2>
+            <ContactForm />
+          </div>
 
           {/* DIGITAL SERVICES */}
           {content.digital_services.length > 0 && (
@@ -107,16 +116,6 @@ export default function Contact({ content }: Props) {
             </div>
           )}
 
-          {content.email && (
-            <div className="mt-12" data-reveal>
-              <a
-                href={`mailto:${content.email}`}
-                className="inline-flex items-center justify-center px-8 py-3 rounded-full font-medium bg-bcs-green text-white hover:bg-bcs-accent transition-colors hover-lift"
-              >
-                Send us a message
-              </a>
-            </div>
-          )}
         </div>
       </section>
     </RevealWrapper>

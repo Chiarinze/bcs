@@ -377,3 +377,28 @@ export interface AuditionRegistration {
   attestation: boolean;
   created_at: string;
 }
+
+// ========== Contact Form ==========
+
+export type ContactStatus = "new" | "read" | "replied";
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  subject: string;
+  message: string;
+  status: ContactStatus;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface ContactReply {
+  id: string;
+  message_id: string;
+  body: string;
+  sent_by: string | null;
+  created_at: string;
+  sender?: Pick<Profile, "first_name" | "last_name"> | null;
+}
