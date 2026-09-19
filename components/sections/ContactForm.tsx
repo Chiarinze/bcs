@@ -53,10 +53,22 @@ export default function ContactForm() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
         <CheckCircle className="w-12 h-12 text-bcs-green mx-auto mb-4" />
         <h3 className="font-serif text-2xl text-bcs-green mb-2">Message sent</h3>
-        <p className="text-gray-600">
+        <p className="text-gray-600 mb-6">
           Thank you, {form.name.split(" ")[0]}. We’ve received your message and will reply to{" "}
           <span className="font-medium">{form.email}</span> as soon as we can.
         </p>
+        <Button
+          variant="outline"
+          className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+          onClick={() => {
+            setForm({ name: "", email: "", phone: "", subject: "", message: "" });
+            setToken(null);
+            setCaptchaKey((k) => k + 1);
+            setSent(false);
+          }}
+        >
+          Send another message
+        </Button>
       </div>
     );
   }

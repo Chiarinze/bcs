@@ -18,6 +18,11 @@ export async function GET(req: NextRequest) {
   const from = (page - 1) * PAGE_SIZE;
 
   const supabase = createServerSupabase();
+
+  // Pull in any pg_net responses that arrived since the last cron run so the
+  // statuses shown are current, not up to 5 minutes stale.
+  await supabase.rpc("reconcile_email_log");
+
   let query = supabase
     .from("email_log")
     .select("id, kind, to_email, from_email, subject, status, status_code, error, meta, created_at, resolved_at", { count: "exact" })
