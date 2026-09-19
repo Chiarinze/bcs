@@ -37,6 +37,12 @@ export default async function MembersPage() {
               musicians from medicine, education, engineering, law, the arts and
               more.
             </p>
+            <p className="text-sm text-gray-500 mt-4">
+              Are you a member?{" "}
+              <Link href="/member-login" className="text-bcs-green font-medium underline">
+                Log in to your dashboard
+              </Link>
+            </p>
           </div>
 
           {groups.length === 0 && (

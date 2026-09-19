@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Menu, Heart } from "lucide-react";
+import { X, Menu, Heart, LogIn } from "lucide-react";
 import Image from "next/image";
 import { IMAGES } from "@/assets/images";
 import clsx from "clsx";
@@ -85,14 +85,15 @@ export const Header = () => {
           ))}
           <Link
             href="/member-login"
+            title="Member login"
             className={clsx(
-              "text-sm font-medium transition-colors",
+              "text-sm font-medium transition-colors flex items-center gap-1",
               useDarkText
                 ? "text-gray-800 hover:underline"
                 : "text-white hover:underline"
             )}
           >
-            Members
+            <LogIn className="w-3.5 h-3.5" /> Log in
           </Link>
           <Link
             href="/donate"
@@ -158,9 +159,9 @@ export const Header = () => {
           <Link
             href="/member-login"
             onClick={() => setIsMenuOpen(false)}
-            className="px-3 py-2 rounded-md text-gray-700 hover:bg-bcs-green/10 transition-colors"
+            className="px-3 py-2 rounded-md text-gray-700 hover:bg-bcs-green/10 transition-colors flex items-center gap-2"
           >
-            Members
+            <LogIn className="w-4 h-4" /> Member log in
           </Link>
           <Link
             href="/donate"
