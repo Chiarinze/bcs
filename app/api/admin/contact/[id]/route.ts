@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: Props) {
       .maybeSingle(),
     supabase
       .from("contact_replies")
-      .select("id, message_id, body, sent_by, created_at, sender:profiles!sent_by(first_name, last_name)")
+      .select("id, message_id, body, direction, from_email, sent_by, created_at, sender:profiles!sent_by(first_name, last_name)")
       .eq("message_id", id)
       .order("created_at"),
   ]);

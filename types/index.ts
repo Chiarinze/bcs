@@ -398,6 +398,8 @@ export interface ContactReply {
   id: string;
   message_id: string;
   body: string;
+  direction: "outbound" | "inbound";
+  from_email: string | null;
   sent_by: string | null;
   created_at: string;
   sender?: Pick<Profile, "first_name" | "last_name"> | null;

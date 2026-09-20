@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: Props) {
   const { data, error } = await supabase
     .from("contact_replies")
     .insert({ message_id: id, body, sent_by: admin.id })
-    .select("id, message_id, body, sent_by, created_at")
+    .select("id, message_id, body, direction, from_email, sent_by, created_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

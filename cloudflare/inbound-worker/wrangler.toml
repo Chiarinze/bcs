@@ -1,0 +1,11 @@
+name = "bcs-inbound-mail"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+SITE_URL = "https://www.beninchoraleandphilharmonic.com"
+FALLBACK_TO = "beninchoralesociety@gmail.com"
+REPLY_DOMAIN = "beninchoraleandphilharmonic.com"
+
+# Secret (set with `wrangler secret put INBOUND_WEBHOOK_SECRET`):
+#   INBOUND_WEBHOOK_SECRET — must match the Vercel env var of the same name

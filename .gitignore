@@ -46,3 +46,6 @@ next-env.d.ts
 # git fetch origin
 # git branch -u origin/main main
 # git remote set-head origin -a
+
+# Cloudflare worker deps
+cloudflare/inbound-worker/node_modules

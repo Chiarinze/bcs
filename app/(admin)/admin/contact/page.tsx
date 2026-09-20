@@ -343,16 +343,27 @@ export default function AdminContactPage() {
                     {detail.message.message}
                   </div>
 
-                  {detail.replies.map((r) => (
-                    <div key={r.id} className="ml-6 border-l-2 border-bcs-green/30 pl-4">
-                      <p className="text-[11px] text-gray-400 mb-1">
-                        <Reply className="w-3 h-3 inline mr-1" />
-                        {r.sender ? `${r.sender.first_name} ${r.sender.last_name}` : "Admin"} ·{" "}
-                        {new Date(r.created_at).toLocaleString("en-NG")}
-                      </p>
-                      <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{r.body}</p>
-                    </div>
-                  ))}
+                  {detail.replies.map((r) =>
+                    r.direction === "inbound" ? (
+                      <div key={r.id} className="bg-gray-50 rounded-xl p-4">
+                        <p className="text-[11px] text-gray-400 mb-1">
+                          <Mail className="w-3 h-3 inline mr-1" />
+                          {detail.message.name} replied by email ·{" "}
+                          {new Date(r.created_at).toLocaleString("en-NG")}
+                        </p>
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{r.body}</p>
+                      </div>
+                    ) : (
+                      <div key={r.id} className="ml-6 border-l-2 border-bcs-green/30 pl-4">
+                        <p className="text-[11px] text-gray-400 mb-1">
+                          <Reply className="w-3 h-3 inline mr-1" />
+                          {r.sender ? `${r.sender.first_name} ${r.sender.last_name}` : "Admin"} ·{" "}
+                          {new Date(r.created_at).toLocaleString("en-NG")}
+                        </p>
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{r.body}</p>
+                      </div>
+                    )
+                  )}
                 </div>
 
                 <div className="p-5 border-t border-gray-100 space-y-3">
@@ -361,7 +372,7 @@ export default function AdminContactPage() {
                     onChange={(e) => setReply(e.target.value)}
                     rows={5}
                     maxLength={10000}
-                    placeholder={`Reply to ${detail.message.name.split(" ")[0]}… (sent from info@ with their message quoted)`}
+                    placeholder={`Reply to ${detail.message.name.split(" ")[0]}… (sent from info@; their email replies come back into this thread)`}
                     className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm resize-y focus:ring-2 focus:ring-bcs-accent focus:border-bcs-accent outline-none transition"
                   />
                   {error && <p className="text-sm text-red-600">{error}</p>}
