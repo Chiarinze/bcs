@@ -1,7 +1,8 @@
 -- =====================================================================
 -- EVENTS — paid internal events + paper-presentation details on
 -- public event registrations
--- Run AFTER email_log.sql and contact_messages.sql (send_email, html_escape).
+-- Run AFTER email_log.sql, contact_messages.sql and event_times.sql
+-- (send_email, html_escape, event_time_label).
 -- Idempotent: safe to re-run.
 -- =====================================================================
 
@@ -63,7 +64,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  SELECT title, slug, location, date, end_date,
+  SELECT title, slug, location, date, end_date, start_time, end_time,
          collect_paper_info, paper_submission_email, paper_deadline, paper_signature
   INTO ev
   FROM public.events WHERE id = NEW.event_id;
@@ -75,6 +76,9 @@ BEGIN
   date_display := to_char(ev.date, 'FMDay, FMDD FMMonth YYYY');
   IF ev.end_date IS NOT NULL AND ev.end_date::date <> ev.date::date THEN
     date_display := date_display || ' — ' || to_char(ev.end_date, 'FMDay, FMDD FMMonth YYYY');
+  END IF;
+  IF event_time_label(ev.start_time, ev.end_time) IS NOT NULL THEN
+    date_display := date_display || ' · ' || event_time_label(ev.start_time, ev.end_time);
   END IF;
 
   amount_text := CASE
@@ -185,20 +189,25 @@ DECLARE
   event_date   text;
   event_end    text;
   event_slug   text;
+  time_label   text;
   date_display text;
   inner_html   text;
   full_html    text;
 BEGIN
   SELECT title, slug,
     TO_CHAR(date, 'DD Mon YYYY'),
-    CASE WHEN end_date IS NOT NULL THEN TO_CHAR(end_date, 'DD Mon YYYY') ELSE NULL END
-  INTO event_title, event_slug, event_date, event_end
+    CASE WHEN end_date IS NOT NULL THEN TO_CHAR(end_date, 'DD Mon YYYY') ELSE NULL END,
+    event_time_label(start_time, end_time)
+  INTO event_title, event_slug, event_date, event_end, time_label
   FROM public.events WHERE id = NEW.event_id;
 
   IF event_end IS NOT NULL AND event_end <> event_date THEN
     date_display := event_date || ' — ' || event_end;
   ELSE
     date_display := event_date;
+  END IF;
+  IF time_label IS NOT NULL THEN
+    date_display := date_display || ' · ' || time_label;
   END IF;
 
   inner_html := '<div style="background: #f9f9f7; border-radius: 12px; padding: 32px; border: 1px solid #e5e5e5;">'

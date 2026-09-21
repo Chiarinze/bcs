@@ -65,6 +65,8 @@ export default function NewEventForm() {
         description: formData.get("description"),
         date: formData.get("date"),
         end_date: endDate || null,
+        start_time: (formData.get("start_time") as string) || null,
+        end_time: (formData.get("end_time") as string) || null,
         location: formData.get("location"),
         event_type: eventType,
         is_internal: eventType === "internal",
@@ -114,6 +116,10 @@ export default function NewEventForm() {
       <div className="grid grid-cols-2 gap-4">
         <TextInput type="date" name="date" label="Start Date" required />
         <TextInput type="date" name="end_date" label="End Date (optional)" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <TextInput type="time" name="start_time" label="Start Time" required />
+        <TextInput type="time" name="end_time" label="End Time (optional)" />
       </div>
       <TextInput name="location" label="Venue/Location" required />
 

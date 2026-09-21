@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { formatEventTime } from "@/lib/eventTime";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { format } from "date-fns";
@@ -180,6 +181,12 @@ export default async function EventDetail({ params }: Props) {
                   <span> — {format(new Date(event.end_date), "EEEE, MMMM d, yyyy")}</span>
                 )}
               </p>
+              {formatEventTime(event.start_time, event.end_time) && (
+                <p className="mb-1">
+                  <span className="font-semibold text-bcs-green">Time:</span>{" "}
+                  {formatEventTime(event.start_time, event.end_time)}
+                </p>
+              )}
               {event.location && (
                 <p>
                   <span className="font-semibold text-bcs-green">

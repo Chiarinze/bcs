@@ -1,5 +1,7 @@
 "use client";
 
+import { formatEventTime } from "@/lib/eventTime";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import EventImage from "../common/EventImage";
@@ -16,6 +18,8 @@ interface Event {
   image_blur_data?: string | null;
   is_paid: boolean;
   price?: number | null;
+  start_time?: string | null;
+  end_time?: string | null;
 }
 
 export default function EventDashboard({ events }: { events: Event[] }) {
@@ -99,7 +103,10 @@ export default function EventDashboard({ events }: { events: Event[] }) {
                     {event.description}
                   </p>
                   <div className="text-xs text-gray-500 space-y-1">
-                    <p>{new Date(event.date).toLocaleDateString()}</p>
+                    <p>
+                      {new Date(event.date).toLocaleDateString()}
+                      {formatEventTime(event.start_time, event.end_time) && ` · ${formatEventTime(event.start_time, event.end_time)}`}
+                    </p>
                     {event.location && <p>{event.location}</p>}
                   </div>
                 </div>

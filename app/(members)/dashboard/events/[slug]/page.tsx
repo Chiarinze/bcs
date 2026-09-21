@@ -13,6 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
+import { formatEventTime } from "@/lib/eventTime";
 
 interface EventDetail {
   id: string;
@@ -28,6 +29,8 @@ interface EventDetail {
   registration_closed?: boolean;
   is_paid?: boolean;
   price?: number | null;
+  start_time?: string | null;
+  end_time?: string | null;
 }
 
 interface EventDocument {
@@ -84,7 +87,7 @@ export default function MemberEventDetailPage() {
       // Fetch event
       const { data: eventData } = await supabase
         .from("events")
-        .select("id, title, description, date, end_date, slug, location, image_url, image_blur_data, event_type, registration_closed, is_paid, price")
+        .select("id, title, description, date, end_date, slug, location, image_url, image_blur_data, event_type, registration_closed, is_paid, price, start_time, end_time")
         .eq("slug", slug)
         .eq("is_internal", true)
         .single();
@@ -281,6 +284,12 @@ export default function MemberEventDetailPage() {
           <Calendar className="w-4 h-4 text-bcs-green flex-shrink-0" />
           <span>{formatDateRange(event.date, event.end_date)}</span>
         </div>
+        {formatEventTime(event.start_time, event.end_time) && (
+          <div className="flex items-center gap-3 text-sm text-gray-700">
+            <Clock className="w-4 h-4 text-bcs-green flex-shrink-0" />
+            <span>{formatEventTime(event.start_time, event.end_time)}</span>
+          </div>
+        )}
         {event.location && (
           <div className="flex items-center gap-3 text-sm text-gray-700">
             <MapPin className="w-4 h-4 text-bcs-green flex-shrink-0" />

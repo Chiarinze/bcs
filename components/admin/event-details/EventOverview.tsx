@@ -1,3 +1,4 @@
+import { formatEventTime } from "@/lib/eventTime";
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   event: any;
@@ -28,7 +29,10 @@ export default function EventOverview({ event, totalTickets }: Props) {
 
       <div>
         <p className="text-sm text-gray-500">Date</p>
-        <p className="font-semibold">{new Date(event.date).toLocaleDateString()}</p>
+        <p className="font-semibold">
+          {new Date(event.date).toLocaleDateString()}
+          {formatEventTime(event.start_time, event.end_time) && ` · ${formatEventTime(event.start_time, event.end_time)}`}
+        </p>
       </div>
       <div>
         <p className="text-sm text-gray-500">Location</p>

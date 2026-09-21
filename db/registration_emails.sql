@@ -1,6 +1,6 @@
 -- =====================================================================
 -- REGISTRATION CONFIRMATION EMAILS — tickets and auditions
--- Run in: Supabase Dashboard → SQL Editor
+-- Run in: Supabase Dashboard → SQL Editor (after event_times.sql)
 -- Idempotent: safe to re-run.
 --
 -- Members' internal registrations already have on_internal_registration.
@@ -121,7 +121,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  SELECT title, slug, location, date, end_date
+  SELECT title, slug, location, date, end_date, start_time, end_time
   INTO ev
   FROM public.events WHERE id = NEW.event_id;
 
@@ -132,6 +132,9 @@ BEGIN
   date_display := to_char(ev.date, 'FMDay, FMDD FMMonth YYYY');
   IF ev.end_date IS NOT NULL AND ev.end_date::date <> ev.date::date THEN
     date_display := date_display || ' — ' || to_char(ev.end_date, 'FMDay, FMDD FMMonth YYYY');
+  END IF;
+  IF event_time_label(ev.start_time, ev.end_time) IS NOT NULL THEN
+    date_display := date_display || ' · ' || event_time_label(ev.start_time, ev.end_time);
   END IF;
 
   what := CASE

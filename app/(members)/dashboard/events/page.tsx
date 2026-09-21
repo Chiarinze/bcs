@@ -1,4 +1,5 @@
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { formatEventTime } from "@/lib/eventTime";
 import Link from "next/link";
 import Image from "next/image";
 import { Calendar, Clock, MapPin } from "lucide-react";
@@ -83,7 +84,10 @@ export default async function MemberEventsPage() {
                     day: "numeric",
                     year: "numeric",
                   })}
-                </span>
+                  {formatEventTime(event.start_time, event.end_time) && (
+                <span> · {formatEventTime(event.start_time, event.end_time)}</span>
+              )}
+            </span>
               )}
             </span>
             {event.location && (

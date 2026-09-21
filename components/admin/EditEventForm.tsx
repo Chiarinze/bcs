@@ -84,6 +84,8 @@ export default function EditEventForm({ event }: { event: any }) {
         description: formData.get("description"),
         date: formData.get("date"),
         end_date: endDate || null,
+        start_time: (formData.get("start_time") as string) || null,
+        end_time: (formData.get("end_time") as string) || null,
         location: formData.get("location"),
 
         // Internal Logic
@@ -157,6 +159,21 @@ export default function EditEventForm({ event }: { event: any }) {
           name="end_date"
           label="End Date (optional)"
           defaultValue={event.end_date?.split("T")[0] || ""}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <TextInput
+          type="time"
+          name="start_time"
+          label="Start Time"
+          defaultValue={event.start_time?.slice(0, 5) || ""}
+          required
+        />
+        <TextInput
+          type="time"
+          name="end_time"
+          label="End Time (optional)"
+          defaultValue={event.end_time?.slice(0, 5) || ""}
         />
       </div>
       <TextInput

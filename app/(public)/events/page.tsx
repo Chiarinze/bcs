@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { formatEventTime } from "@/lib/eventTime";
 import { format } from "date-fns";
 import { Event } from "@/types";
 import EventImage from "@/components/common/EventImage";
@@ -76,7 +77,12 @@ export default async function EventsPage() {
                 </p>
 
                 <div className="text-sm text-gray-500 mt-auto">
-                  <p>{format(new Date(event.date), "MMMM d, yyyy")}</p>
+                  <p>
+                    {format(new Date(event.date), "MMMM d, yyyy")}
+                    {formatEventTime(event.start_time, event.end_time) && (
+                      <span> · {formatEventTime(event.start_time, event.end_time)}</span>
+                    )}
+                  </p>
                   {event.location && <p>{event.location}</p>}
                 </div>
               </div>

@@ -4,6 +4,8 @@ export interface Event {
   description: string;
   date: string;
   end_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
   slug: string;
   location?: string;
   is_paid: boolean;
