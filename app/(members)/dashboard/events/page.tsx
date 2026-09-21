@@ -54,6 +54,11 @@ export default async function MemberEventsPage() {
                 {event.event_type}
               </span>
             )}
+            {event.is_paid && event.price ? (
+              <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-white/90 text-bcs-green text-[11px] font-semibold">
+                ₦{Number(event.price).toLocaleString()}
+              </span>
+            ) : null}
           </div>
         )}
         <div className="p-4">

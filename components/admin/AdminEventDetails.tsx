@@ -140,7 +140,7 @@ export default function AdminEventDetails({ event, totalTickets, categories, cod
 
       <AttendeesSection event={event} categories={categories} />
 
-      {event.is_paid && !event.is_internal && <CouponsSection event={event} codes={codes} />}
+      {event.is_paid && <CouponsSection event={event} codes={codes} />}
     </div>
   );
 }

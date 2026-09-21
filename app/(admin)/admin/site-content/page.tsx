@@ -5,7 +5,7 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 import Button from "@/components/ui/Button";
 import { TextInput, TextArea } from "@/components/ui/FormInputs";
 import { Plus, Trash2, ArrowUp, ArrowDown, Check } from "lucide-react";
-import type { AboutContent, ContactContent, SiteContentKey } from "@/types";
+import type { AboutContent, ContactContent, LinksContent, SiteContentKey } from "@/types";
 
 type Tab = SiteContentKey;
 
@@ -127,6 +127,7 @@ export default function SiteContentPage() {
   const [tab, setTab] = useState<Tab>("about");
   const [about, setAbout] = useState<AboutContent | null>(null);
   const [contact, setContact] = useState<ContactContent | null>(null);
+  const [links, setLinks] = useState<LinksContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -141,13 +142,14 @@ export default function SiteContentPage() {
       .then((data) => {
         setAbout(data.about);
         setContact(data.contact);
+        setLinks(data.links);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
   async function save() {
-    const value = tab === "about" ? about : contact;
+    const value = tab === "about" ? about : tab === "contact" ? contact : links;
     if (!value) return;
     setSaving(true);
     setError(null);
@@ -163,7 +165,8 @@ export default function SiteContentPage() {
       // The server returns the sanitised document; mirror it so the form
       // shows exactly what is live.
       if (tab === "about") setAbout(data.value);
-      else setContact(data.value);
+      else if (tab === "contact") setContact(data.value);
+      else setLinks(data.value);
       setSavedAt(Date.now());
     }
     setSaving(false);
@@ -196,14 +199,14 @@ export default function SiteContentPage() {
               </span>
             )}
             <Button onClick={save} loading={saving} disabled={loading}>
-              Save {tab === "about" ? "About" : "Contact"}
+              Save {tab === "about" ? "About" : tab === "contact" ? "Contact" : "Links"}
             </Button>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-2 border-b border-gray-200">
-          {(["about", "contact"] as Tab[]).map((t) => (
+          {(["about", "contact", "links"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -213,7 +216,7 @@ export default function SiteContentPage() {
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              {t === "about" ? "About page" : "Contact page"}
+              {t === "about" ? "About page" : t === "contact" ? "Contact page" : "Links"}
             </button>
           ))}
         </div>
@@ -433,6 +436,24 @@ export default function SiteContentPage() {
                 onChange={(digital_services) => patchContact({ digital_services })}
                 placeholder="e.g. Graphics Design"
               />
+            </Section>
+          </div>
+        )}
+
+        {!loading && tab === "links" && links && (
+          <div className="space-y-6">
+            <Section title="External links">
+              <TextInput
+                label="Buy music scores / pieces (URL)"
+                name="music_scores_url"
+                type="url"
+                placeholder="https://…"
+                value={links.music_scores_url}
+                onChange={(e) => setLinks({ ...links, music_scores_url: e.target.value })}
+              />
+              <p className="text-xs text-gray-500">
+                Shown on the registration success screen after someone registers or buys a ticket. Leave empty to hide the button.
+              </p>
             </Section>
           </div>
         )}

@@ -26,6 +26,8 @@ interface EventDetail {
   image_blur_data?: string | null;
   event_type?: string;
   registration_closed?: boolean;
+  is_paid?: boolean;
+  price?: number | null;
 }
 
 interface EventDocument {
@@ -66,15 +68,23 @@ export default function MemberEventDetailPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [regError, setRegError] = useState("");
 
+  // Paid internal events
+  const [memberEmail, setMemberEmail] = useState("");
+  const [coupon, setCoupon] = useState("");
+  const [discountPercent, setDiscountPercent] = useState<number | null>(null);
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
+
   useEffect(() => {
     async function load() {
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) setMemberEmail(user.email);
 
       // Fetch event
       const { data: eventData } = await supabase
         .from("events")
-        .select("id, title, description, date, end_date, slug, location, image_url, image_blur_data, event_type, registration_closed")
+        .select("id, title, description, date, end_date, slug, location, image_url, image_blur_data, event_type, registration_closed, is_paid, price")
         .eq("slug", slug)
         .eq("is_internal", true)
         .single();
@@ -106,21 +116,94 @@ export default function MemberEventDetailPage() {
     load();
   }, [slug, router]);
 
-  async function handleRegister() {
-    setRegistering(true);
+  // Load Paystack inline script once (paid events only)
+  useEffect(() => {
+    if (!event?.is_paid || typeof window === "undefined" || window.paystackLoaded) return;
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    script.onload = () => {
+      window.paystackLoaded = true;
+    };
+    document.body.appendChild(script);
+  }, [event?.is_paid]);
+
+  const basePrice = event?.is_paid ? Number(event.price) || 0 : 0;
+  const finalPrice =
+    discountPercent != null ? Math.round(basePrice * (1 - discountPercent / 100)) : basePrice;
+
+  async function applyCouponCode() {
+    if (!event || !coupon.trim()) return;
+    setCheckingCoupon(true);
     setRegError("");
+    const res = await fetch(`/api/coupons/validate?event_id=${event.id}&code=${encodeURIComponent(coupon.trim())}`);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      setDiscountPercent(Number(data.discount_percent) || 0);
+    } else {
+      setDiscountPercent(null);
+      setRegError(data.error || "Invalid coupon");
+    }
+    setCheckingCoupon(false);
+  }
 
-    const res = await fetch(`/api/events/${slug}/register`, { method: "POST" });
-
+  async function submitRegistration(reference?: string) {
+    const res = await fetch(`/api/events/${slug}/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reference: reference || null,
+        coupon_code: discountPercent != null ? coupon.trim().toUpperCase() : null,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
       setRegistered(true);
       setShowConfirm(false);
       setShowSuccess(true);
     } else {
-      const data = await res.json();
       setRegError(data.error || "Registration failed");
     }
     setRegistering(false);
+  }
+
+  async function handleRegister() {
+    setRegistering(true);
+    setRegError("");
+
+    // Free (or fully discounted): register directly.
+    if (finalPrice <= 0) {
+      await submitRegistration();
+      return;
+    }
+
+    // Paid: collect payment first, then register with the reference.
+    for (let i = 0; i < 25 && !window.PaystackPop; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    if (!window.PaystackPop || !memberEmail) {
+      setRegError("Payment could not be started. Please reload the page and try again.");
+      setRegistering(false);
+      return;
+    }
+
+    const reference = `BCS-INT-${Date.now()}`;
+    const handler = window.PaystackPop.setup({
+      key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+      email: memberEmail,
+      amount: finalPrice * 100,
+      currency: "NGN",
+      ref: reference,
+      metadata: { event_title: event?.title, internal: true },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      callback: function (response: any) {
+        submitRegistration(response.reference);
+      },
+      onClose: function () {
+        setRegistering(false);
+      },
+    });
+    handler.openIframe();
   }
 
   if (loading) {
@@ -248,6 +331,40 @@ export default function MemberEventDetailPage() {
                   {event.title}
                 </p>
               </div>
+              {basePrice > 0 && (
+                <div className="mx-auto max-w-sm text-left space-y-3 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Registration fee</span>
+                    <span className="font-semibold text-gray-900">
+                      {discountPercent != null && discountPercent > 0 ? (
+                        <>
+                          <span className="line-through text-gray-400 mr-2">₦{basePrice.toLocaleString()}</span>
+                          ₦{finalPrice.toLocaleString()}
+                        </>
+                      ) : (
+                        <>₦{basePrice.toLocaleString()}</>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={coupon}
+                      onChange={(e) => {
+                        setCoupon(e.target.value.toUpperCase());
+                        setDiscountPercent(null);
+                      }}
+                      placeholder="Coupon code (optional)"
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    />
+                    <Button type="button" variant="outline" loading={checkingCoupon} onClick={applyCouponCode} className="text-sm border-gray-300 text-gray-700">
+                      Apply
+                    </Button>
+                  </div>
+                  {discountPercent != null && (
+                    <p className="text-xs text-green-700">{discountPercent}% discount applied.</p>
+                  )}
+                </div>
+              )}
               {regError && (
                 <p className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">
                   {regError}
@@ -268,7 +385,7 @@ export default function MemberEventDetailPage() {
                   loading={registering}
                   onClick={handleRegister}
                 >
-                  Confirm Registration
+                  {finalPrice > 0 ? `Pay ₦${finalPrice.toLocaleString()} & register` : "Confirm Registration"}
                 </Button>
               </div>
             </div>
@@ -279,7 +396,9 @@ export default function MemberEventDetailPage() {
                   Register for this event
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Your profile information will be used for registration
+                  {basePrice > 0
+                    ? `Registration fee: ₦${basePrice.toLocaleString()} — paid securely via Paystack`
+                    : "Your profile information will be used for registration"}
                 </p>
               </div>
               <Button

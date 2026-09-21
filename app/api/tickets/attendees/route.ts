@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
   const limit = Number(searchParams.get("limit") || "10");
   const search = searchParams.get("search") || "";
   const category = searchParams.get("category") || "";
+  const presenting = searchParams.get("presenting") || "";
 
   if (!event_id) {
     return NextResponse.json({ error: "Missing event_id" }, { status: 400 });
@@ -40,6 +41,10 @@ export async function GET(req: NextRequest) {
   if (category.trim() !== "") {
     query = query.eq("category", category.trim());
   }
+
+  // Filter by paper presentation answer
+  if (presenting === "yes") query = query.eq("presenting_paper", true);
+  else if (presenting === "no") query = query.eq("presenting_paper", false);
 
   // Apply pagination
   const { data, error, count } = await query

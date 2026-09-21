@@ -14,6 +14,11 @@ export interface Event {
   is_internal?: boolean;
   event_type?: "standard" | "internal" | "audition";
   registration_closed?: boolean;
+  // Paper presentation option (public events)
+  collect_paper_info?: boolean;
+  paper_submission_email?: string | null;
+  paper_deadline?: string | null;
+  paper_signature?: string | null;
 }
 
 export interface Ticket {
@@ -25,6 +30,10 @@ export interface Ticket {
   seller?: string | null;
   payment_ref: string;
   coupon_code?: string | null;
+  category?: string | null;
+  affiliation?: string | null;
+  presenting_paper?: boolean | null;
+  paper_title?: string | null;
   created_at?: string;
 }
 
@@ -188,9 +197,14 @@ export interface ContactContent {
   digital_services: string[];
 }
 
+export interface LinksContent {
+  music_scores_url: string;
+}
+
 export interface SiteContentMap {
   about: AboutContent;
   contact: ContactContent;
+  links: LinksContent;
 }
 
 export type SiteContentKey = keyof SiteContentMap;

@@ -5,6 +5,7 @@ import { uploadEventImage } from "@/lib/uploadImage";
 import { useRouter } from "next/navigation";
 import { TextInput, TextArea, FileInput } from "@/components/ui/FormInputs";
 import Button from "@/components/ui/Button";
+import PaperOptions from "@/components/admin/PaperOptions";
 
 type EventType = "standard" | "internal" | "audition";
 
@@ -17,6 +18,8 @@ export default function NewEventForm() {
   const [loading, setLoading] = useState(false);
   const [eventType, setEventType] = useState<EventType>("standard");
   const [isPaid, setIsPaid] = useState(false);
+  const [internalPrice, setInternalPrice] = useState("");
+  const [collectPaper, setCollectPaper] = useState(false);
 
   // Reuse categories state: For standard it's tickets, for auditions it's time slots
   const [categories, setCategories] = useState<
@@ -65,7 +68,14 @@ export default function NewEventForm() {
         location: formData.get("location"),
         event_type: eventType,
         is_internal: eventType === "internal",
-        is_paid: eventType === "standard" ? isPaid : false,
+        is_paid: eventType === "standard" || eventType === "internal" ? isPaid : false,
+        // Internal events use one fixed price instead of categories.
+        price: eventType === "internal" && isPaid ? Number(internalPrice) || 0 : null,
+        // Paper presentation option (public events only)
+        collect_paper_info: eventType === "standard" && collectPaper,
+        paper_submission_email: collectPaper ? (formData.get("paper_submission_email") as string) || null : null,
+        paper_deadline: collectPaper ? (formData.get("paper_deadline") as string) || null : null,
+        paper_signature: collectPaper ? (formData.get("paper_signature") as string) || null : null,
         image_url,
         image_blur_data,
         // Send categories as either tickets or time slots
@@ -132,7 +142,7 @@ export default function NewEventForm() {
         </div>
 
 
-        {eventType === "standard" && (
+        {(eventType === "standard" || eventType === "internal") && (
           <label className="flex items-center gap-2 cursor-pointer pt-2">
             <input
               type="checkbox"
@@ -142,6 +152,28 @@ export default function NewEventForm() {
             />
             <span className="text-gray-700">This is a paid event</span>
           </label>
+        )}
+
+        {eventType === "internal" && isPaid && (
+          <div className="pt-1">
+            <TextInput
+              type="number"
+              name="internal_price"
+              label="Price per member (₦)"
+              min={1}
+              value={internalPrice}
+              onChange={(e) => setInternalPrice(e.target.value)}
+              placeholder="e.g. 5000"
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Members pay this from their dashboard before they are registered. Coupons work as for public events.
+            </p>
+          </div>
+        )}
+
+        {eventType === "standard" && (
+          <PaperOptions enabled={collectPaper} onToggle={setCollectPaper} />
         )}
       </div>
 

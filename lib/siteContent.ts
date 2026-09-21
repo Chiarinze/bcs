@@ -2,6 +2,7 @@ import { createServerSupabase } from "@/lib/supabaseServer";
 import type {
   AboutContent,
   ContactContent,
+  LinksContent,
   SiteContentKey,
   SiteContentMap,
 } from "@/types";
@@ -40,9 +41,14 @@ export const DEFAULT_CONTACT: ContactContent = {
   digital_services: [],
 };
 
+export const DEFAULT_LINKS: LinksContent = {
+  music_scores_url: "",
+};
+
 const DEFAULTS: SiteContentMap = {
   about: DEFAULT_ABOUT,
   contact: DEFAULT_CONTACT,
+  links: DEFAULT_LINKS,
 };
 
 /**

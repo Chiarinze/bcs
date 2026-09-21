@@ -5,6 +5,7 @@ import { uploadEventImage } from "@/lib/uploadImage";
 import { useRouter } from "next/navigation";
 import { TextInput, TextArea, FileInput } from "@/components/ui/FormInputs";
 import Button from "@/components/ui/Button";
+import PaperOptions from "@/components/admin/PaperOptions";
 
 interface TicketCategory {
   id?: string;
@@ -20,6 +21,8 @@ export default function EditEventForm({ event }: { event: any }) {
   // New State
   const [isInternal, setIsInternal] = useState(event.is_internal || false);
   const [isPaid, setIsPaid] = useState(event.is_paid || false);
+  const [internalPrice, setInternalPrice] = useState(event.price != null ? String(event.price) : "");
+  const [collectPaper, setCollectPaper] = useState(event.collect_paper_info || false);
   const [registrationClosed, setRegistrationClosed] = useState(
     event.registration_closed || false,
   );
@@ -85,7 +88,14 @@ export default function EditEventForm({ event }: { event: any }) {
 
         // Internal Logic
         is_internal: isInternal,
-        is_paid: isInternal ? false : isPaid, // Reset paid if switching to internal
+        is_paid: isPaid,
+        price: isInternal && isPaid ? Number(internalPrice) || 0 : null,
+
+        // Paper presentation option (public events only)
+        collect_paper_info: !isInternal && collectPaper,
+        paper_submission_email: !isInternal && collectPaper ? (formData.get("paper_submission_email") as string) || null : null,
+        paper_deadline: !isInternal && collectPaper ? (formData.get("paper_deadline") as string) || null : null,
+        paper_signature: !isInternal && collectPaper ? (formData.get("paper_signature") as string) || null : null,
 
         registration_closed: registrationClosed,
 
@@ -171,18 +181,16 @@ export default function EditEventForm({ event }: { event: any }) {
             <span className="text-gray-700">Internal Event (Members Only)</span>
           </label>
 
-          {!isInternal && (
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                name="is_paid"
-                checked={isPaid}
-                onChange={(e) => setIsPaid(e.target.checked)}
-                className="h-4 w-4 text-bcs-green rounded border-gray-300 focus:ring-bcs-accent"
-              />
-              <span className="text-gray-700">Paid Public Event</span>
-            </label>
-          )}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="is_paid"
+              checked={isPaid}
+              onChange={(e) => setIsPaid(e.target.checked)}
+              className="h-4 w-4 text-bcs-green rounded border-gray-300 focus:ring-bcs-accent"
+            />
+            <span className="text-gray-700">{isInternal ? "Paid (members pay to register)" : "Paid Public Event"}</span>
+          </label>
 
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -194,6 +202,22 @@ export default function EditEventForm({ event }: { event: any }) {
             <span className="text-gray-700">Close registration</span>
           </label>
         </div>
+        {isInternal && isPaid && (
+          <TextInput
+            type="number"
+            name="internal_price"
+            label="Price per member (₦)"
+            min={1}
+            value={internalPrice}
+            onChange={(e) => setInternalPrice(e.target.value)}
+            required
+          />
+        )}
+
+        {!isInternal && (
+          <PaperOptions enabled={collectPaper} onToggle={setCollectPaper} event={event} />
+        )}
+
         {registrationClosed && (
           <p className="text-xs text-red-600">
             Nobody will be able to register or buy tickets while this is checked.

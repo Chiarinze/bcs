@@ -25,6 +25,11 @@ export default function PurchaseForm({ event, categories }: Props) {
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
   const [subscribe, setSubscribe] = useState(true);
+  // Paper presentation details (only when the event collects them)
+  const [affiliation, setAffiliation] = useState("");
+  const [presenting, setPresenting] = useState<"" | "yes" | "no">("");
+  const [paperTitle, setPaperTitle] = useState("");
+  const collectPaper = !!event.collect_paper_info;
   const [loading, setLoading] = useState(false);
 
   const [coupon, setCoupon] = useState("");
@@ -79,6 +84,14 @@ export default function PurchaseForm({ event, categories }: Props) {
     }
   }
 
+  const paperFields = collectPaper
+    ? {
+        affiliation: affiliation.trim(),
+        presenting_paper: presenting === "yes",
+        paper_title: presenting === "yes" ? paperTitle.trim() : null,
+      }
+    : {};
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -88,6 +101,18 @@ export default function PurchaseForm({ event, categories }: Props) {
         alert("Please fill in all fields.");
         setLoading(false);
         return;
+      }
+      if (collectPaper) {
+        if (!affiliation.trim() || !presenting) {
+          alert("Please tell us your institutional affiliation and whether you are presenting a paper.");
+          setLoading(false);
+          return;
+        }
+        if (presenting === "yes" && !paperTitle.trim()) {
+          alert("Please enter the title of your paper.");
+          setLoading(false);
+          return;
+        }
       }
 
       // 🟢 FREE EVENT: no payment needed
@@ -103,6 +128,7 @@ export default function PurchaseForm({ event, categories }: Props) {
             buyer_name: buyerName,
             buyer_email: buyerEmail,
             subscribe,
+            ...paperFields,
             category: selectedCategory || "Free",
             amount: 0,
           }),
@@ -135,6 +161,7 @@ export default function PurchaseForm({ event, categories }: Props) {
             buyer_name: buyerName,
             buyer_email: buyerEmail,
             subscribe,
+            ...paperFields,
             category: selectedCategory || "Free",
             amount: 0,
             coupon_code: coupon || null,
@@ -191,6 +218,7 @@ export default function PurchaseForm({ event, categories }: Props) {
               buyer_name: buyerName,
               buyer_email: buyerEmail,
               subscribe,
+              ...paperFields,
               category: selectedCategory,
               amount: finalAmount,
               coupon_code: coupon || null,
@@ -256,6 +284,59 @@ export default function PurchaseForm({ event, categories }: Props) {
           className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-bcs-green"
         />
       </div>
+
+      {collectPaper && (
+        <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div>
+            <label className="block text-sm font-medium text-bcs-green mb-1">
+              Institutional Affiliation
+            </label>
+            <input
+              type="text"
+              value={affiliation}
+              onChange={(e) => setAffiliation(e.target.value)}
+              placeholder="e.g. University of Benin"
+              required
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-bcs-green"
+            />
+          </div>
+          <div>
+            <p className="block text-sm font-medium text-bcs-green mb-2">Are you presenting a paper?</p>
+            <div className="flex gap-6">
+              {(["yes", "no"] as const).map((v) => (
+                <label key={v} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="presenting"
+                    value={v}
+                    checked={presenting === v}
+                    onChange={() => setPresenting(v)}
+                    required
+                    className="text-bcs-green focus:ring-bcs-green"
+                  />
+                  {v === "yes" ? "Yes" : "No"}
+                </label>
+              ))}
+            </div>
+          </div>
+          {presenting === "yes" && (
+            <div>
+              <label className="block text-sm font-medium text-bcs-green mb-1">Title of your paper</label>
+              <input
+                type="text"
+                value={paperTitle}
+                onChange={(e) => setPaperTitle(e.target.value)}
+                required
+                maxLength={300}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-bcs-green"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                We&apos;ll email you the abstract submission details after you register.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
         <input

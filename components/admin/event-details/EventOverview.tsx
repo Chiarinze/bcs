@@ -10,7 +10,14 @@ export default function EventOverview({ event, totalTickets }: Props) {
       <div>
         <p className="text-sm text-gray-500">Event Type</p>
         <p className="font-semibold text-bcs-green">
-          {event.is_internal ? "Internal (Members)" : event.is_paid ? "Paid" : "Free"}
+          {event.is_internal
+            ? event.is_paid
+              ? `Internal (Members) · ₦${Number(event.price || 0).toLocaleString()}`
+              : "Internal (Members)"
+            : event.is_paid
+              ? "Paid"
+              : "Free"}
+          {event.collect_paper_info && " · Paper details collected"}
         </p>
       </div>
       

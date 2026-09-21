@@ -19,6 +19,8 @@ export default function AttendeesSection({ event, categories }: Props) {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
+  const [filterPresenting, setFilterPresenting] = useState<"" | "yes" | "no">("");
+  const collectPaper = !!event.collect_paper_info;
   const [isTyping, setIsTyping] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -43,7 +45,7 @@ export default function AttendeesSection({ event, categories }: Props) {
           event.id
         }&page=${page}&limit=${limit}&search=${encodeURIComponent(
           search
-        )}&category=${encodeURIComponent(filterCategory)}`;
+        )}&category=${encodeURIComponent(filterCategory)}&presenting=${filterPresenting}`;
       }
 
       const res = await fetch(url);
@@ -57,7 +59,7 @@ export default function AttendeesSection({ event, categories }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [event.id, isInternal, isAudition, page, search, filterCategory]);
+  }, [event.id, isInternal, isAudition, page, search, filterCategory, filterPresenting]);
 
   // Combined Debounced Effect
   useEffect(() => {
@@ -67,7 +69,7 @@ export default function AttendeesSection({ event, categories }: Props) {
       fetchAttendees();
     }, 400);
     return () => clearTimeout(timeout);
-  }, [search, filterCategory, page, fetchAttendees]);
+  }, [search, filterCategory, filterPresenting, page, fetchAttendees]);
 
   async function handleDownload(type: "pdf" | "csv") {
     const endpoint = type === "pdf" ? "download" : "export-csv";
@@ -76,7 +78,10 @@ export default function AttendeesSection({ event, categories }: Props) {
     const baseRoute = isAudition ? "/api/auditions" : "/api/tickets";
 
     const params = new URLSearchParams({ event_id: event.id, search });
-    if (!isInternal && !isAudition) params.append("category", filterCategory);
+    if (!isInternal && !isAudition) {
+      params.append("category", filterCategory);
+      params.append("presenting", filterPresenting);
+    }
 
     try {
       const res = await fetch(`${baseRoute}/${endpoint}?${params.toString()}`);
@@ -164,12 +169,28 @@ export default function AttendeesSection({ event, categories }: Props) {
             </select>
           )}
 
-          {(search || filterCategory) && (
+          {!isInternal && !isAudition && collectPaper && (
+            <select
+              value={filterPresenting}
+              onChange={(e) => {
+                setFilterPresenting(e.target.value as "" | "yes" | "no");
+                setPage(1);
+              }}
+              className="border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-bcs-green"
+            >
+              <option value="">Presenting & not presenting</option>
+              <option value="yes">Presenting a paper</option>
+              <option value="no">Not presenting</option>
+            </select>
+          )}
+
+          {(search || filterCategory || filterPresenting) && (
             <Button
               variant="outline"
               onClick={() => {
                 setSearch("");
                 setFilterCategory("");
+                setFilterPresenting("");
                 setPage(1);
               }}
             >
@@ -347,13 +368,19 @@ export default function AttendeesSection({ event, categories }: Props) {
             </table>
           ) : (
             /* --- PUBLIC EVENT TABLE --- */
-            <table className="w-full text-sm border-t min-w-[500px]">
+            <table className={`w-full text-sm border-t ${collectPaper ? "min-w-[900px]" : "min-w-[500px]"}`}>
               <thead className="bg-gray-50 text-left">
                 <tr>
                   <th className="p-3">Name</th>
                   <th className="p-3">Email</th>
                   <th className="p-3">Category</th>
                   <th className="p-3">Amount</th>
+                  {collectPaper && (
+                    <>
+                      <th className="p-3">Affiliation</th>
+                      <th className="p-3">Paper</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -365,6 +392,23 @@ export default function AttendeesSection({ event, categories }: Props) {
                     <td className="p-3">
                       ₦{a.amount_paid?.toLocaleString() || 0}
                     </td>
+                    {collectPaper && (
+                      <>
+                        <td className="p-3">{a.affiliation || "—"}</td>
+                        <td className="p-3">
+                          {a.presenting_paper ? (
+                            <span className="inline-flex flex-col">
+                              <span className="text-[11px] bg-bcs-green/10 text-bcs-green px-2 py-0.5 rounded-full w-fit">Presenting</span>
+                              <span className="text-gray-700 mt-1">{a.paper_title}</span>
+                            </span>
+                          ) : a.presenting_paper === false ? (
+                            <span className="text-gray-400">Not presenting</span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

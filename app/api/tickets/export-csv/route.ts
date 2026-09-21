@@ -19,9 +19,11 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const event_id = searchParams.get("event_id");
+  const presenting = searchParams.get("presenting") || "";
+  const category = searchParams.get("category") || "";
   const supabase = createServerSupabase();
 
-  const { data: event } = await supabase.from("events").select("is_internal").eq("id", event_id).single();
+  const { data: event } = await supabase.from("events").select("is_internal, collect_paper_info").eq("id", event_id).single();
 
   let headers: string[] = [];
   let rows: any[] = [];
@@ -34,12 +36,23 @@ export async function GET(req: NextRequest) {
       a.choir_part || a.orchestra_instrument, a.join_year, a.has_medical_condition ? "Yes" : "No"
     ]);
   } else {
-    const { data } = await supabase.from("tickets").select("*").eq("event_id", event_id);
-    headers = ["Name", "Email", "Category", "Amount"];
-    rows = (data || []).map((a: { buyer_name: any; buyer_email: any; category: any; amount_paid: any; }) => [a.buyer_name, a.buyer_email, a.category, a.amount_paid]);
+    let query = supabase.from("tickets").select("*").eq("event_id", event_id).order("created_at");
+    if (category.trim()) query = query.eq("category", category.trim());
+    if (presenting === "yes") query = query.eq("presenting_paper", true);
+    else if (presenting === "no") query = query.eq("presenting_paper", false);
+    const { data } = await query;
+
+    const collectPaper = event?.collect_paper_info === true;
+    headers = ["Name", "Email", "Category", "Amount", "Reference", "Registered"];
+    if (collectPaper) headers.push("Affiliation", "Presenting paper", "Paper title");
+    rows = (data || []).map((a: any) => {
+      const row = [a.buyer_name, a.buyer_email, a.category, a.amount_paid, a.payment_ref, a.created_at];
+      if (collectPaper) row.push(a.affiliation || "", a.presenting_paper === true ? "Yes" : a.presenting_paper === false ? "No" : "", a.paper_title || "");
+      return row;
+    });
   }
 
-  const csv = [headers, ...rows].map(r => r.map((c: any) => `"${c}"`).join(",")).join("\n");
+  const csv = [headers, ...rows].map(r => r.map((c: any) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
 
   return new NextResponse(csv, {
     headers: { "Content-Type": "text/csv", "Content-Disposition": `attachment; filename="export.csv"` }

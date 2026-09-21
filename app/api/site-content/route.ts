@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { DEFAULT_ABOUT, DEFAULT_CONTACT } from "@/lib/siteContent";
-import type { AboutContent, ContactContent, SiteContentKey } from "@/types";
+import { DEFAULT_ABOUT, DEFAULT_CONTACT, DEFAULT_LINKS } from "@/lib/siteContent";
+import type { AboutContent, ContactContent, LinksContent, SiteContentKey } from "@/types";
 
 const MAX_TEXT = 2000;
 const MAX_LIST = 30;
@@ -63,7 +63,11 @@ function sanitizeContact(body: Record<string, unknown>): ContactContent {
   };
 }
 
-const KEYS: SiteContentKey[] = ["about", "contact"];
+function sanitizeLinks(body: Record<string, unknown>): LinksContent {
+  return { music_scores_url: url(body.music_scores_url) };
+}
+
+const KEYS: SiteContentKey[] = ["about", "contact", "links"];
 
 // GET: both documents for the admin editor
 export async function GET() {
@@ -85,6 +89,7 @@ export async function GET() {
   return NextResponse.json({
     about: { ...DEFAULT_ABOUT, ...(byKey.about ?? {}) },
     contact: { ...DEFAULT_CONTACT, ...(byKey.contact ?? {}) },
+    links: { ...DEFAULT_LINKS, ...(byKey.links ?? {}) },
   });
 }
 
@@ -101,7 +106,8 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  const value = key === "about" ? sanitizeAbout(raw) : sanitizeContact(raw);
+  const value =
+    key === "about" ? sanitizeAbout(raw) : key === "contact" ? sanitizeContact(raw) : sanitizeLinks(raw);
 
   const supabase = createServerSupabase();
   const { error } = await supabase.from("site_content").upsert({
@@ -119,6 +125,7 @@ export async function PUT(req: NextRequest) {
   revalidatePath("/");
   revalidatePath("/about");
   revalidatePath("/contact");
+  revalidatePath("/events/[slug]/success", "page");
 
   return NextResponse.json({ success: true, value });
 }

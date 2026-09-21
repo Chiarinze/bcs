@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
+import { paperFields } from "@/lib/paperFields";
 
 export async function POST(req: NextRequest) {
   const limited = rateLimit(getClientIp(req.headers), {
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (limited) return limited;
 
   try {
-    const { reference, event_id, buyer_name, buyer_email, category, coupon_code, subscribe } =
+    const { reference, event_id, buyer_name, buyer_email, category, coupon_code, subscribe, affiliation, presenting_paper, paper_title } =
       await req.json();
 
     if (!event_id || !buyer_name || !buyer_email) {
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const { data: event } = await supabase
       .from("events")
-      .select("id, is_paid, registration_closed")
+      .select("id, is_paid, registration_closed, collect_paper_info")
       .eq("id", event_id)
       .single();
 
@@ -38,6 +39,12 @@ export async function POST(req: NextRequest) {
         { error: "Registration is closed for this event." },
         { status: 403 }
       );
+    }
+
+    // Paper presentation details are required when the event collects them.
+    const paper = paperFields(event.collect_paper_info === true, { affiliation, presenting_paper, paper_title });
+    if ("error" in paper) {
+      return NextResponse.json({ error: paper.error }, { status: 400 });
     }
 
     // Resolve & validate the category server-side
@@ -149,6 +156,7 @@ export async function POST(req: NextRequest) {
         payment_ref: reference || `FREE-${Date.now()}`,
         category: resolvedCategoryName,
         coupon_code: validatedCouponCode,
+        ...paper,
       },
     ]);
 
