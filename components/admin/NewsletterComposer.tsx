@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, X, UserRound } from "lucide-react";
+import { CalendarPlus, X, UserRound, PenLine } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import TipTapEditor from "@/components/articles/TipTapEditor";
 import Button from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/FormInputs";
 import { formatLongDate } from "@/lib/formatDate";
+import { SIGNATURE_HTML } from "@/lib/emailSignature";
 import RecipientPicker from "@/components/admin/RecipientPicker";
 import type { Event, Newsletter, NewsletterKind, Subscriber } from "@/types";
 
@@ -180,6 +181,16 @@ export default function NewsletterComposer({ newsletter, initialRecipients = [] 
                   className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-bcs-green hover:bg-bcs-green/10"
                 >
                   <UserRound className="w-4 h-4" /> First name
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    editor.chain().focus().insertContent(SIGNATURE_HTML).run()
+                  }
+                  title="Insert the sign-off with social links"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-bcs-green hover:bg-bcs-green/10"
+                >
+                  <PenLine className="w-4 h-4" /> Signature
                 </button>
                 <button
                   type="button"
