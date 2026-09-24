@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { parseNewsletterInput } from "@/lib/newsletterInput";
+import { parseNewsletterInput, parseRecipientIds } from "@/lib/newsletterInput";
 
 // GET: all campaigns, newest first (bodies omitted)
 export async function GET() {
@@ -12,7 +12,7 @@ export async function GET() {
   const [{ data, error }, { count: subscribed }] = await Promise.all([
     supabase
       .from("newsletters")
-      .select("id, subject, preheader, kind, status, total_recipients, sent_count, failed_count, queued_at, completed_at, created_at, updated_at")
+      .select("id, subject, preheader, kind, audience, status, total_recipients, sent_count, failed_count, queued_at, completed_at, created_at, updated_at")
       .order("created_at", { ascending: false }),
     supabase.from("subscribers").select("id", { count: "exact", head: true }).eq("status", "subscribed"),
   ]);
@@ -38,5 +38,13 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (value.audience === "selected") {
+    const ids = parseRecipientIds(body.recipient_ids);
+    await supabase
+      .from("newsletter_recipients")
+      .insert(ids.map((subscriber_id) => ({ newsletter_id: data.id, subscriber_id })));
+  }
+
   return NextResponse.json(data, { status: 201 });
 }

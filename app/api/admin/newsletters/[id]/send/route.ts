@@ -15,7 +15,7 @@ export async function POST(_req: NextRequest, { params }: Props) {
   const { id } = await params;
   const supabase = createServerSupabase();
 
-  const { data: nl } = await supabase.from("newsletters").select("status, body_html").eq("id", id).maybeSingle();
+  const { data: nl } = await supabase.from("newsletters").select("status, body_html, audience").eq("id", id).maybeSingle();
   if (!nl) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (nl.status !== "draft") return NextResponse.json({ error: "Only drafts can be sent" }, { status: 409 });
   if (!nl.body_html || nl.body_html.replace(/<[^>]+>/g, "").trim().length < 20) {

@@ -7,12 +7,13 @@ import NewsletterComposer from "@/components/admin/NewsletterComposer";
 import Button from "@/components/ui/Button";
 import { Send, FlaskConical, Ban, RefreshCw } from "lucide-react";
 import usePolling from "@/hooks/usePolling";
-import type { Newsletter } from "@/types";
+import type { Newsletter, Subscriber } from "@/types";
 
 interface Detail {
   newsletter: Newsletter;
   stats: { pending: number; sending: number; sent: number; failed: number };
   failures: { email: string; last_error: string | null; attempts: number }[];
+  recipients: Subscriber[];
 }
 
 export default function NewsletterDetailPage() {
@@ -47,7 +48,7 @@ export default function NewsletterDetailPage() {
 
   async function action(path: "send" | "test" | "cancel") {
     if (path === "send") {
-      const n = subscribed ?? 0;
+      const n = detail?.newsletter.audience === "selected" ? detail.recipients.length : subscribed ?? 0;
       if (
         !confirm(
           `Send “${detail?.newsletter.subject}” to ${n} subscriber${n === 1 ? "" : "s"}?\n\nIt goes out gradually (max 80 per day) so it may take a few days to reach everyone. Make sure you have saved your latest changes.`
@@ -109,7 +110,10 @@ export default function NewsletterDetailPage() {
                   <FlaskConical className="w-4 h-4" /> Send me a test
                 </Button>
                 <Button loading={busy === "send"} onClick={() => action("send")}>
-                  <Send className="w-4 h-4" /> Send to {subscribed ?? "…"} subscribers
+                  <Send className="w-4 h-4" />{" "}
+                  {n.audience === "selected"
+                    ? `Send to ${detail.recipients.length} selected`
+                    : `Send to ${subscribed ?? "…"} subscribers`}
                 </Button>
               </>
             )}
@@ -165,7 +169,7 @@ export default function NewsletterDetailPage() {
           </div>
         )}
 
-        <NewsletterComposer key={n.updated_at} newsletter={n} />
+        <NewsletterComposer key={n.updated_at} newsletter={n} initialRecipients={detail.recipients || []} />
 
         {n.status === "draft" && (
           <p className="text-xs text-gray-400">

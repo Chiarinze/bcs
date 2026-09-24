@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarPlus, X } from "lucide-react";
+import { CalendarPlus, X, UserRound } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import TipTapEditor from "@/components/articles/TipTapEditor";
 import Button from "@/components/ui/Button";
 import { TextInput } from "@/components/ui/FormInputs";
 import { formatLongDate } from "@/lib/formatDate";
-import type { Event, Newsletter, NewsletterKind } from "@/types";
+import RecipientPicker from "@/components/admin/RecipientPicker";
+import type { Event, Newsletter, NewsletterKind, Subscriber } from "@/types";
 
 const SITE = "https://www.beninchoraleandphilharmonic.com";
 
 interface Props {
   newsletter?: Newsletter;
+  /** Subscribers already chosen when the campaign's audience is "selected". */
+  initialRecipients?: Subscriber[];
 }
 
 function escapeHtml(s: string) {
@@ -34,7 +37,7 @@ function eventHtml(ev: Event): string {
   );
 }
 
-export default function NewsletterComposer({ newsletter }: Props) {
+export default function NewsletterComposer({ newsletter, initialRecipients = [] }: Props) {
   const router = useRouter();
   const editable = !newsletter || newsletter.status === "draft";
 
@@ -42,6 +45,8 @@ export default function NewsletterComposer({ newsletter }: Props) {
   const [preheader, setPreheader] = useState(newsletter?.preheader || "");
   const [kind, setKind] = useState<NewsletterKind>(newsletter?.kind || "newsletter");
   const [body, setBody] = useState(newsletter?.body_html || "");
+  const [audience, setAudience] = useState<"all" | "selected">(newsletter?.audience || "all");
+  const [recipients, setRecipients] = useState<Subscriber[]>(initialRecipients);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -67,7 +72,14 @@ export default function NewsletterComposer({ newsletter }: Props) {
   async function save(): Promise<Newsletter | null> {
     setSaving(true);
     setError("");
-    const payload = { subject, preheader, kind, body_html: body };
+    const payload = {
+      subject,
+      preheader,
+      kind,
+      body_html: body,
+      audience,
+      recipient_ids: recipients.map((r) => r.id),
+    };
     const res = await fetch(newsletter ? `/api/admin/newsletters/${newsletter.id}` : "/api/admin/newsletters", {
       method: newsletter ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
@@ -133,6 +145,22 @@ export default function NewsletterComposer({ newsletter }: Props) {
         />
       </div>
 
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <RecipientPicker
+          audience={audience}
+          selected={recipients}
+          disabled={!editable}
+          onAudienceChange={(a) => {
+            setAudience(a);
+            setDirty(true);
+          }}
+          onSelectedChange={(next) => {
+            setRecipients(next);
+            setDirty(true);
+          }}
+        />
+      </div>
+
       <div className="space-y-2">
         <p className="text-sm font-medium text-bcs-green">Body</p>
         {editable ? (
@@ -144,7 +172,24 @@ export default function NewsletterComposer({ newsletter }: Props) {
               setDirty(true);
             }}
             extraTools={(editor) => (
-              <button
+              <>
+                <button
+                  type="button"
+                  onClick={() => editor.chain().focus().insertContent("{{first_name|there}}").run()}
+                  title="Insert the recipient's first name"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-bcs-green hover:bg-bcs-green/10"
+                >
+                  <UserRound className="w-4 h-4" /> First name
+                </button>
+                <button
+                  type="button"
+                  onClick={() => editor.chain().focus().insertContent("{{name|there}}").run()}
+                  title="Insert the recipient's full name"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-bcs-green hover:bg-bcs-green/10"
+                >
+                  <UserRound className="w-4 h-4" /> Full name
+                </button>
+                <button
                 type="button"
                 onClick={() => {
                   setPickerEditor(editor);
@@ -154,7 +199,8 @@ export default function NewsletterComposer({ newsletter }: Props) {
                 className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-bcs-green hover:bg-bcs-green/10"
               >
                 <CalendarPlus className="w-4 h-4" /> Insert event
-              </button>
+                </button>
+              </>
             )}
           />
         ) : (
@@ -165,7 +211,9 @@ export default function NewsletterComposer({ newsletter }: Props) {
         )}
         <p className="text-xs text-gray-400">
           Your logo, header and footer are added automatically from the standard email template, along with
-          an unsubscribe link.
+          an unsubscribe link. Use <code>{"{{first_name|there}}"}</code> or <code>{"{{name|there}}"}</code> anywhere —
+          including the subject — to address each person by name; the word after <code>|</code> is used when we
+          don&apos;t know their name.
         </p>
       </div>
 

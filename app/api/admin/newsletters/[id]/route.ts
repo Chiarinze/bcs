@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { parseNewsletterInput } from "@/lib/newsletterInput";
+import { parseNewsletterInput, parseRecipientIds } from "@/lib/newsletterInput";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -14,6 +14,9 @@ export async function GET(_req: NextRequest, { params }: Props) {
 
   const { id } = await params;
   const supabase = createServerSupabase();
+
+  // Resolve anything in flight so the page never shows a stale "sending".
+  await supabase.rpc("settle_newsletter_deliveries");
 
   const { data: newsletter } = await supabase.from("newsletters").select("*").eq("id", id).maybeSingle();
   if (!newsletter) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -33,7 +36,19 @@ export async function GET(_req: NextRequest, { params }: Props) {
     .eq("status", "failed")
     .limit(50);
 
-  return NextResponse.json({ newsletter, stats, failures: failures || [] });
+  const { data: recipients } = await supabase
+    .from("newsletter_recipients")
+    .select("subscriber_id, subscriber:subscribers!subscriber_id(id, email, name, status)")
+    .eq("newsletter_id", id);
+
+  return NextResponse.json({
+    newsletter,
+    stats,
+    failures: failures || [],
+    recipients: ((recipients || []) as unknown as { subscriber: unknown }[])
+      .map((r) => r.subscriber)
+      .filter(Boolean),
+  });
 }
 
 // PUT: edit a draft
@@ -57,6 +72,15 @@ export async function PUT(req: NextRequest, { params }: Props) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Only drafts can be edited" }, { status: 409 });
+
+  await supabase.from("newsletter_recipients").delete().eq("newsletter_id", id);
+  if (value.audience === "selected") {
+    const ids = parseRecipientIds(body.recipient_ids);
+    await supabase
+      .from("newsletter_recipients")
+      .insert(ids.map((subscriber_id) => ({ newsletter_id: id, subscriber_id })));
+  }
+
   return NextResponse.json(data);
 }
 

@@ -33,6 +33,15 @@ export interface NewsletterInput {
   preheader: string | null;
   body_html: string;
   kind: "newsletter" | "promotional";
+  audience: "all" | "selected";
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Subscriber ids for an audience of "selected". */
+export function parseRecipientIds(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((id): id is string => typeof id === "string" && UUID_RE.test(id)))].slice(0, 5000);
 }
 
 export function parseNewsletterInput(body: Record<string, unknown>): { value?: NewsletterInput; error?: string } {
@@ -48,5 +57,10 @@ export function parseNewsletterInput(body: Record<string, unknown>): { value?: N
   const body_html = sanitizeNewsletterHtml(typeof body.body_html === "string" ? body.body_html : "");
   if (body_html.length > 200_000) return { error: "Body is too large" };
 
-  return { value: { subject, preheader, body_html, kind } };
+  const audience = body.audience === "selected" ? "selected" : "all";
+  if (audience === "selected" && parseRecipientIds(body.recipient_ids).length === 0) {
+    return { error: "Choose at least one recipient, or send to everyone" };
+  }
+
+  return { value: { subject, preheader, body_html, kind, audience } };
 }

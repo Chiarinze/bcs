@@ -445,6 +445,7 @@ export interface Newsletter {
   preheader: string | null;
   body_html: string;
   kind: NewsletterKind;
+  audience: "all" | "selected";
   status: NewsletterStatus;
   total_recipients: number;
   sent_count: number;

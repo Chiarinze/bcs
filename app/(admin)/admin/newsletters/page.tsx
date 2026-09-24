@@ -85,7 +85,8 @@ export default function AdminNewslettersPage() {
                       {n.subject}
                     </Link>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      <span className="capitalize">{n.kind}</span> ·{" "}
+                      <span className="capitalize">{n.kind}</span>
+                      {n.audience === "selected" && " · selected recipients"} ·{" "}
                       {n.status === "draft"
                         ? `edited ${new Date(n.updated_at).toLocaleDateString("en-NG")}`
                         : `${n.sent_count}/${n.total_recipients} sent${n.failed_count ? `, ${n.failed_count} failed` : ""}`}
