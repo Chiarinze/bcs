@@ -18,6 +18,7 @@ export default function robots(): MetadataRoute.Robots {
         "/events/*/register",
         "/events/*/success",
         "/donate/success",
+        "/payment/",
       ],
     },
     sitemap: "https://www.beninchoraleandphilharmonic.com/sitemap.xml",

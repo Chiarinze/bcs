@@ -22,14 +22,42 @@ export default async function SuccessPage({ params, searchParams }: Props) {
 
   const supabase = createServerSupabase();
   const [{ data: event, error }, links] = await Promise.all([
-    supabase.from("events").select("id, slug, title, is_paid").eq("slug", slug).single(),
+    supabase.from("events").select("id, slug, title").eq("slug", slug).single(),
     getSiteContent("links"),
   ]);
 
   if (error || !event) notFound();
 
-  const heading = event.is_paid ? "Payment Successful" : "Registration Successful";
-  const message = event.is_paid
+  // Only a real ticket for this event gets a confirmation: this page is shown
+  // to door staff, so it must not be reachable by typing a URL.
+  const { data: ticket } = reference
+    ? await supabase
+        .from("tickets")
+        .select("amount_paid")
+        .eq("event_id", event.id)
+        .eq("payment_ref", reference)
+        .maybeSingle()
+    : { data: null };
+
+  if (!ticket) {
+    return (
+      <section className="py-20 bg-[#F9F9F7] min-h-screen px-4">
+        <div className="max-w-lg mx-auto bg-white rounded-2xl shadow-sm p-10 text-center">
+          <h1 className="text-2xl font-serif text-bcs-green mb-3">Booking not found</h1>
+          <p className="text-gray-600 mb-6">
+            We couldn’t find a ticket with this reference. If you have paid, please check your email or contact us.
+          </p>
+          <Link href={`/events/${event.slug}`} className="text-gray-500 underline">
+            View event
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  const paid = Number(ticket.amount_paid) > 0;
+  const heading = paid ? "Payment Successful" : "Registration Successful";
+  const message = paid
     ? "Thank you for your payment! Your ticket has been recorded."
     : "You’re now registered for this event! We look forward to seeing you there.";
 

@@ -73,17 +73,25 @@ middleware.ts   Session refresh, CSRF checks and rate limiting
 - `app/robots.ts` blocks admin, member, API, purchase, registration and success paths.
 - `noindex` on internal events, purchase success pages and unsubscribe links.
 
-## Payment verification
+## Payments
 
-Ticket verification (`app/api/tickets/verify/route.ts`) never trusts the browser:
+A payment never depends on the customer's browser surviving. The order is saved before any money moves, and three independent paths can complete it:
 
-1. It looks up the ticket category's real price on the server.
-2. It validates the coupon itself: active, within its usage limit, and with a sane discount.
-3. It verifies the transaction with Paystack and compares the amount actually charged with the expected amount.
-4. It rejects any payment reference that has already been used.
-5. It rate-limits the endpoint.
+1. `POST /api/payments/initialize` validates everything and works out the price on the server, saves the order in the `payments` table, then sends the customer to Paystack's hosted checkout.
+2. The Paystack webhook (`/api/webhooks/paystack`, signature-checked), the customer returning to `/payment/status`, or the 15-minute reconcile job (`/api/cron/reconcile-payments`, woken by pg_cron) all reach the same `fulfill_payment` database function.
+3. `fulfill_payment` locks the order, so it is safe to call repeatedly or from several places at once. It creates exactly one ticket, registration or donation.
 
-Donations follow the same pattern in `app/api/donations/verify/route.ts`.
+Rules worth keeping:
+
+- All checks happen before payment. Once money is received it is honoured, whatever has changed since (registration closed, price edited, coupon disabled).
+- Anything that can't complete automatically goes to **Admin → Payments** with a reason, and the admin is emailed. Nothing is dropped silently.
+- A full refund removes the ticket, registration or donation made by that reference. The `payments` row keeps the history.
+
+### Setup
+
+1. Run `db/payments.sql` in the Supabase SQL Editor, and check the output for any duplicate-reference warnings.
+2. Add a vault secret named `cron_secret` with the same value as `CRON_SECRET`. The `site_url` secret must be the final production host, because pg_net doesn't follow redirects.
+3. In the Paystack dashboard, set the webhook URL to `https://<your-domain>/api/webhooks/paystack`. Live and test keys each have their own URL.
 
 ## Security
 
@@ -113,7 +121,7 @@ npm run dev
 | `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`, `PAYSTACK_SECRET_KEY` | Payments (use test keys locally) |
 | `NEXT_PUBLIC_HCAPTCHA_SITE_KEY`, `HCAPTCHA_SECRET_KEY` | Form protection |
 | `NEXT_PUBLIC_BASE_URL` | Absolute URLs in emails and metadata |
-| `CRON_SECRET` | Protects scheduled endpoints |
+| `CRON_SECRET` | Protects scheduled endpoints (also stored in the Supabase vault as `cron_secret`) |
 | `INBOUND_WEBHOOK_SECRET` | Shared secret for the inbound email worker |
 
 Apply the SQL in `db/` to your Supabase project to create the tables, policies, triggers and functions.

@@ -12,7 +12,8 @@ export async function middleware(request: NextRequest) {
     if (csrfError) return csrfError;
 
     // Rate limit public API POST endpoints
-    if (request.method === "POST") {
+    // Webhooks authenticate by signature; throttling one would delay a payment.
+    if (request.method === "POST" && !pathname.startsWith("/api/webhooks/")) {
       const limited = rateLimit(getClientIp(request.headers), {
         key: `api:${pathname}`,
         limit: 15,

@@ -1,8 +1,11 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Button from "@/components/ui/Button";
+import PendingPaymentNotice from "@/components/payments/PendingPaymentNotice";
+import { useCheckout } from "@/hooks/useCheckout";
+import { discountedPrice } from "@/lib/pricing";
 import { Event, TicketCategory } from "@/types";
 
 interface Props {
@@ -13,14 +16,8 @@ interface Props {
 export default function PurchaseForm({ event, categories }: Props) {
   const searchParams = useSearchParams();
 
-  const preselectedCategory = searchParams.get("category");
-  const preselectedPrice = searchParams.get("price");
-
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    preselectedCategory || ""
-  );
-  const [amount, setAmount] = useState<number>(
-    preselectedPrice ? Number(preselectedPrice) : 0
+    searchParams.get("category") || ""
   );
   const [buyerName, setBuyerName] = useState("");
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -30,34 +27,20 @@ export default function PurchaseForm({ event, categories }: Props) {
   const [presenting, setPresenting] = useState<"" | "yes" | "no">("");
   const [paperTitle, setPaperTitle] = useState("");
   const collectPaper = !!event.collect_paper_info;
-  const [loading, setLoading] = useState(false);
+  const [registering, setRegistering] = useState(false);
 
   const [coupon, setCoupon] = useState("");
   const [discountPercent, setDiscountPercent] = useState<number | null>(null);
-  const [discountedAmount, setDiscountedAmount] = useState<number | null>(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
 
-  // ✅ Load Paystack script only once
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.paystackLoaded) return;
+  const { startCheckout, starting } = useCheckout();
+  const loading = registering || starting;
 
-    const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
-    script.async = true;
-    script.onload = () => {
-      window.paystackLoaded = true;
-    };
-    document.body.appendChild(script);
-  }, []);
-
-  // 🔄 Update amount if category changes
-  useEffect(() => {
-    if (selectedCategory && !preselectedPrice) {
-      const found = categories.find((c) => c.name === selectedCategory);
-      setAmount(found ? found.price : 0);
-    }
-  }, [selectedCategory, categories, preselectedPrice]);
+  // Always derived from the chosen category and the applied coupon, so the
+  // figure on screen can't go stale. The server charges the same calculation.
+  const basePrice = categories.find((c) => c.name === selectedCategory)?.price ?? 0;
+  const finalAmount =
+    discountPercent != null ? discountedPrice(basePrice, discountPercent) : basePrice;
 
   async function applyCoupon() {
     if (!coupon) return alert("Please enter a coupon code.");
@@ -65,20 +48,17 @@ export default function PurchaseForm({ event, categories }: Props) {
 
     try {
       const res = await fetch(
-        `/api/coupons/validate?event_id=${event.id}&code=${coupon}`
+        `/api/coupons/validate?event_id=${event.id}&code=${encodeURIComponent(coupon)}`
       );
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.error || "Invalid coupon");
 
-      setDiscountPercent(data.discount_percent);
-      const newAmount = amount - (amount * data.discount_percent) / 100;
-      setDiscountedAmount(newAmount);
+      setDiscountPercent(Number(data.discount_percent) || 0);
       alert(`Coupon applied! ${data.discount_percent}% off`);
     } catch (err) {
       alert((err as Error).message);
       setDiscountPercent(null);
-      setDiscountedAmount(null);
     } finally {
       setCheckingCoupon(false);
     }
@@ -92,166 +72,62 @@ export default function PurchaseForm({ event, categories }: Props) {
       }
     : {};
 
+  async function registerFree(order: Record<string, unknown>) {
+    setRegistering(true);
+    try {
+      const res = await fetch("/api/tickets/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(order),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        window.location.href = `/events/${event.slug}/success?ref=${encodeURIComponent(data.reference)}`;
+        return;
+      }
+      alert(data.error || "Registration failed. Please try again.");
+    } catch {
+      alert("We could not reach the server. Please check your connection and try again.");
+    }
+    setRegistering(false);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
 
-    try {
-      if (!buyerName || !buyerEmail) {
-        alert("Please fill in all fields.");
-        setLoading(false);
-        return;
-      }
-      if (collectPaper) {
-        if (!affiliation.trim() || !presenting) {
-          alert("Please tell us your institutional affiliation and whether you are presenting a paper.");
-          setLoading(false);
-          return;
-        }
-        if (presenting === "yes" && !paperTitle.trim()) {
-          alert("Please enter the title of your paper.");
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 🟢 FREE EVENT: no payment needed
-      if (!event.is_paid) {
-        const reference = `FREE-${Date.now()}`;
-
-        const res = await fetch("/api/tickets/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            reference,
-            event_id: event.id,
-            buyer_name: buyerName,
-            buyer_email: buyerEmail,
-            subscribe,
-            ...paperFields,
-            category: selectedCategory || "Free",
-            amount: 0,
-          }),
-        });
-
-        const data = await res.json();
-        if (res.ok && data.success) {
-          window.location.href = `/events/${event.slug}/success?ref=${reference}`;
-        } else {
-          alert(data.error || "Registration failed. Please try again.");
-        }
-
-        setLoading(false);
-        return;
-      }
-
-      // 🟠 PAID EVENT: check coupon value
-      const finalAmount = discountedAmount ?? amount;
-
-      if (finalAmount <= 0) {
-        // ✅ 100% OFF COUPON — treat as free
-        const reference = `FREECOUPON-${Date.now()}`;
-
-        const res = await fetch("/api/tickets/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            reference,
-            event_id: event.id,
-            buyer_name: buyerName,
-            buyer_email: buyerEmail,
-            subscribe,
-            ...paperFields,
-            category: selectedCategory || "Free",
-            amount: 0,
-            coupon_code: coupon || null,
-          }),
-        });
-
-        const data = await res.json();
-        if (res.ok && data.success) {
-          window.location.href = `/events/${event.slug}/success?ref=${reference}`;
-        } else {
-          alert(data.error || "Free registration failed. Please try again.");
-        }
-
-        setLoading(false);
-        return;
-      }
-
-      // 🧾 Otherwise, normal Paystack payment
-      for (let i = 0; i < 20; i++) {
-        if (
-          window.PaystackPop &&
-          typeof window.PaystackPop.setup === "function"
-        )
-          break;
-        await new Promise((r) => setTimeout(r, 200));
-      }
-
-      if (!window.PaystackPop) {
-        alert("Paystack failed to load. Please reload the page.");
-        setLoading(false);
-        return;
-      }
-
-      const reference = `BCS-${Date.now()}`;
-      const handler = window.PaystackPop.setup({
-        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-        email: buyerEmail,
-        amount: finalAmount * 100,
-        currency: "NGN",
-        ref: reference,
-        metadata: {
-          name: buyerName,
-          category: selectedCategory,
-          event_title: event.title,
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        callback: function (response: any) {
-          fetch("/api/tickets/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              reference: response.reference,
-              event_id: event.id,
-              buyer_name: buyerName,
-              buyer_email: buyerEmail,
-              subscribe,
-              ...paperFields,
-              category: selectedCategory,
-              amount: finalAmount,
-              coupon_code: coupon || null,
-            }),
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.success) {
-                window.location.href = `/events/${event.slug}/success?ref=${response.reference}`;
-              } else {
-                alert(
-                  data.error ||
-                    "Payment verified but ticket not recorded. Please contact support."
-                );
-              }
-            })
-            .catch((err) => {
-              console.error("Verification error:", err);
-              alert("Payment completed, but verification failed.");
-            });
-        },
-        onClose: function () {
-          alert("Payment window closed or cancelled.");
-        },
-      });
-
-      handler.openIframe();
-    } catch (error) {
-      console.error("Payment error:", error);
-      alert("Payment could not start. Please try again.");
-    } finally {
-      setLoading(false);
+    if (!buyerName || !buyerEmail) {
+      alert("Please fill in all fields.");
+      return;
     }
+    if (collectPaper) {
+      if (!affiliation.trim() || !presenting) {
+        alert("Please tell us your institutional affiliation and whether you are presenting a paper.");
+        return;
+      }
+      if (presenting === "yes" && !paperTitle.trim()) {
+        alert("Please enter the title of your paper.");
+        return;
+      }
+    }
+
+    const order = {
+      event_id: event.id,
+      buyer_name: buyerName,
+      buyer_email: buyerEmail,
+      subscribe,
+      ...paperFields,
+      category: event.is_paid ? selectedCategory : undefined,
+      coupon_code: discountPercent != null ? coupon : null,
+    };
+
+    if (!event.is_paid || (selectedCategory && finalAmount <= 0)) {
+      await registerFree(order);
+      return;
+    }
+
+    const result = await startCheckout({ ...order, kind: "ticket", expected_amount: finalAmount });
+    if ("free" in result) await registerFree(order);
+    else if ("error" in result) alert(result.error);
   }
 
   return (
@@ -259,6 +135,8 @@ export default function PurchaseForm({ event, categories }: Props) {
       onSubmit={handleSubmit}
       className="space-y-5 border-t border-gray-100 pt-6"
     >
+      <PendingPaymentNotice />
+
       <div>
         <label className="block text-sm font-medium text-bcs-green mb-1">
           Full Name
@@ -381,7 +259,10 @@ export default function PurchaseForm({ event, categories }: Props) {
             <input
               type="text"
               value={coupon}
-              onChange={(e) => setCoupon(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setCoupon(e.target.value.toUpperCase());
+                setDiscountPercent(null);
+              }}
               placeholder="Enter coupon code"
               className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-bcs-green"
             />
@@ -395,25 +276,20 @@ export default function PurchaseForm({ event, categories }: Props) {
             </Button>
           </div>
 
-          {discountPercent && (
+          {discountPercent != null && (
             <p className="text-sm text-gray-600">
               {discountPercent}% discount applied — New total:{" "}
-              <span className="font-semibold">
-                ₦{discountedAmount?.toLocaleString()}
-              </span>
+              <span className="font-semibold">₦{finalAmount.toLocaleString()}</span>
             </p>
           )}
         </div>
       )}
 
-      {(event.is_paid && (discountedAmount ?? 0) > 0) ||
-        (amount > 0 && (
-          <p className="text-gray-700 font-medium">
-            {`Total Amount: ₦${
-              discountedAmount?.toLocaleString() || amount.toLocaleString()
-            }`}
-          </p>
-        ))}
+      {event.is_paid && basePrice > 0 && (
+        <p className="text-gray-700 font-medium">
+          Total Amount: ₦{finalAmount.toLocaleString()}
+        </p>
+      )}
 
       <Button
         type="submit"
@@ -423,9 +299,7 @@ export default function PurchaseForm({ event, categories }: Props) {
         {loading
           ? "Processing..."
           : event.is_paid
-          ? `Pay ₦${
-              discountedAmount?.toLocaleString() || amount.toLocaleString()
-            }`
+          ? `Pay ₦${finalAmount.toLocaleString()}`
           : "Register (Free)"}
       </Button>
     </form>

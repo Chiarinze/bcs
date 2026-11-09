@@ -9,6 +9,7 @@ interface Coupon {
   discount_percent: number;
   is_active: boolean;
   usage_count: number;
+  usage_limit?: number | null;
 }
 
 interface Event {
@@ -31,6 +32,7 @@ export default function CouponsSection({
     const code = prompt("Enter code name (e.g. EARLYBIRD10):");
     const discount = prompt("Enter discount percent (e.g. 10):");
     if (!code || !discount) return;
+    const limit = prompt("Maximum number of uses (leave blank for unlimited):");
 
     try {
       const res = await fetch("/api/coupons", {
@@ -40,6 +42,7 @@ export default function CouponsSection({
           event_id: event.id,
           code,
           discount_percent: Number(discount),
+          usage_limit: limit?.trim() ? Number(limit) : null,
         }),
       });
 
@@ -128,7 +131,10 @@ export default function CouponsSection({
                     <span className="text-gray-500 font-medium">Inactive</span>
                   )}
                 </td>
-                <td className="p-3">{c.usage_count || 0}</td>
+                <td className="p-3">
+                  {c.usage_count || 0}
+                  {c.usage_limit ? ` / ${c.usage_limit}` : ""}
+                </td>
                 <td className="p-3 flex gap-2">
                   <Button
                     variant="outline"

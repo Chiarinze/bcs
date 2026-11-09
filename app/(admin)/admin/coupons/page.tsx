@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminCouponsPage() {
   const supabase = createServerSupabase();
   const { data: coupons, error } = await supabase
-  .from("coupons")
+  .from("coupon_codes")
   .select("*")
   .order("created_at", { ascending: false });
 

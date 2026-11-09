@@ -21,28 +21,43 @@ export async function PUT(req: NextRequest, { params }: Props) {
       .from("events")
       .update(eventData)
       .eq("slug", slug)
-      .select("slug")
+      .select("id, slug")
       .single();
 
     if (eventError) throw eventError;
 
-    // ✅ 2. Refresh ticket categories
+    // ✅ 2. Update ticket categories in place. Deleting and re-inserting them
+    // would leave a moment where the event has no categories to buy.
     if (Array.isArray(categories)) {
-      // Delete old categories
-      await supabase.from("ticket_categories").delete().eq("event_id", event.id);
-
-      // Insert new ones
-      const categoryData = categories.map((cat) => ({
-        event_id: event.id,
-        name: cat.name,
-        price: cat.price,
-      }));
-
-      const { error: catError } = await supabase
+      const { data: current, error: currentError } = await supabase
         .from("ticket_categories")
-        .insert(categoryData);
+        .select("id, name")
+        .eq("event_id", event.id);
 
-      if (catError) throw catError;
+      if (currentError) throw currentError;
+
+      const existing: { id: string; name: string }[] = current ?? [];
+      const kept = new Set<string>();
+
+      for (const cat of categories) {
+        const match = existing.find(
+          (c) => !kept.has(c.id) && (c.id === cat.id || c.name === cat.name)
+        );
+        const values = { name: cat.name, price: cat.price };
+
+        const { error: catError } = match
+          ? await supabase.from("ticket_categories").update(values).eq("id", match.id)
+          : await supabase.from("ticket_categories").insert({ ...values, event_id: event.id });
+
+        if (catError) throw catError;
+        if (match) kept.add(match.id);
+      }
+
+      const removed = existing.filter((c) => !kept.has(c.id)).map((c) => c.id);
+      if (removed.length > 0) {
+        const { error: removeError } = await supabase.from("ticket_categories").delete().in("id", removed);
+        if (removeError) throw removeError;
+      }
     }
 
     // ✅ 3. Auto revalidate events page

@@ -2,6 +2,7 @@ import Link from "next/link";
 import PurchaseForm from "@/components/events/PurchaseForm";
 import Button from "@/components/ui/Button";
 import { createServerSupabase } from "@/lib/supabaseServer";
+import { isEventOver } from "@/lib/pricing";
 import { notFound } from "next/navigation";
 
 interface Props {
@@ -25,7 +26,7 @@ export default async function PurchasePage({ params }: Props) {
 
   if (eventError || !event) notFound();
 
-  if (event.registration_closed) {
+  if (event.registration_closed || isEventOver(event)) {
     return (
       <section className="py-20 bg-[#F9F9F7] px-4">
         <div className="max-w-2xl mx-auto bg-white shadow-sm rounded-2xl p-8 text-center">
@@ -37,8 +38,8 @@ export default async function PurchasePage({ params }: Props) {
               Registration is closed
             </h2>
             <p className="text-sm text-red-700">
-              The administrator has closed registration for this event. Tickets
-              are no longer available.
+              Registration for this event has closed. Tickets are no longer
+              available.
             </p>
           </div>
           <Link href={`/events/${slug}`}>

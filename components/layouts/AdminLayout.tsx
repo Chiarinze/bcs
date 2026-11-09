@@ -23,6 +23,7 @@ import {
   Inbox,
   Send,
   MailCheck,
+  CreditCard,
 } from "lucide-react";
 
 export default function AdminLayout({
@@ -45,6 +46,7 @@ export default function AdminLayout({
     { href: "/admin/members", label: "Members", icon: Users },
     { href: "/admin/roles", label: "Roles", icon: Shield },
     { href: "/admin/articles", label: "Articles", icon: FileText },
+    { href: "/admin/payments", label: "Payments", icon: CreditCard },
     { href: "/admin/donations", label: "Donations", icon: Heart },
     { href: "/admin/contact", label: "Inbox", icon: Inbox },
     { href: "/admin/newsletters", label: "Newsletters", icon: Send },

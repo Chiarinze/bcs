@@ -1,58 +1,113 @@
-/**
- * Server-side Paystack verification. Confirms the transaction succeeded and
- * that the amount charged equals what we expected (in naira).
- */
-export async function verifyPaystackPayment(
-  reference: string,
-  expectedNaira: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+import { createHmac, timingSafeEqual } from "crypto";
+
+const API = "https://api.paystack.co";
+const TIMEOUT_MS = 8000;
+
+function secretKey(): string {
   const key = process.env.PAYSTACK_SECRET_KEY;
-  if (!key) return { ok: false, error: "PAYSTACK_SECRET_KEY not set in environment" };
-
-  const res = await fetch(
-    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" } }
-  );
-  const data = await res.json().catch(() => null);
-
-  if (!data || data.status !== true || data.data?.status !== "success") {
-    return { ok: false, error: "Payment verification failed or not completed" };
-  }
-
-  const paidKobo = Number(data.data.amount);
-  if (!Number.isFinite(paidKobo) || paidKobo !== Math.round(expectedNaira * 100)) {
-    return { ok: false, error: "Payment amount does not match the expected price" };
-  }
-
-  return { ok: true };
+  if (!key) throw new Error("PAYSTACK_SECRET_KEY not set in environment");
+  return key;
 }
 
-/**
- * Applies a coupon for an event to a base price. Returns the discounted price
- * and the canonical code, or an error message when the coupon is not usable.
- */
-export async function applyCoupon(
-  supabase: { from: (t: string) => any }, // eslint-disable-line @typescript-eslint/no-explicit-any
-  eventId: string,
-  code: string | null | undefined,
-  basePrice: number
-): Promise<{ price: number; code: string | null; error?: string }> {
-  if (!code || basePrice <= 0) return { price: basePrice, code: null };
-
-  const { data: coupon, error } = await supabase
-    .from("coupon_codes")
-    .select("*")
-    .eq("event_id", eventId)
-    .eq("code", code)
-    .maybeSingle();
-
-  if (error) return { price: basePrice, code: null, error: "Could not verify the coupon. Please try again." };
-  if (!coupon || !coupon.is_active) return { price: basePrice, code: null, error: "Invalid or inactive coupon code" };
-  if (typeof coupon.usage_limit === "number" && typeof coupon.usage_count === "number" && coupon.usage_count >= coupon.usage_limit) {
-    return { price: basePrice, code: null, error: "Coupon usage limit has been reached" };
+/** Calls Paystack. Returns null for a timeout, network error or non-JSON reply. */
+async function paystackFetch(path: string, init?: RequestInit) {
+  try {
+    const res = await fetch(`${API}${path}`, {
+      ...init,
+      headers: { Authorization: `Bearer ${secretKey()}`, "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      cache: "no-store",
+    });
+    const body = await res.json().catch(() => null);
+    return body ? { ok: res.ok, status: res.status, body } : null;
+  } catch (error) {
+    console.error("Paystack request failed:", (error as Error).message);
+    return null;
   }
-  const discount = Number(coupon.discount_percent) || 0;
-  if (discount < 0 || discount > 100) return { price: basePrice, code: null, error: "Invalid coupon discount" };
+}
 
-  return { price: Math.round(basePrice * (1 - discount / 100)), code: coupon.code };
+export async function initializeTransaction(params: {
+  reference: string;
+  email: string;
+  amountKobo: number;
+  callbackUrl: string;
+  cancelUrl: string;
+  metadata: Record<string, unknown>;
+}): Promise<{ authorizationUrl: string } | null> {
+  const result = await paystackFetch("/transaction/initialize", {
+    method: "POST",
+    body: JSON.stringify({
+      reference: params.reference,
+      email: params.email,
+      amount: String(params.amountKobo),
+      currency: "NGN",
+      callback_url: params.callbackUrl,
+      metadata: { ...params.metadata, cancel_action: params.cancelUrl },
+    }),
+  });
+
+  const url = result?.body?.data?.authorization_url;
+  if (!result?.ok || typeof url !== "string") {
+    console.error("Paystack initialize failed:", result?.body?.message ?? "no response");
+    return null;
+  }
+  return { authorizationUrl: url };
+}
+
+export interface PaidTransaction {
+  amountKobo: number;
+  currency: string;
+  paidAt: string | null;
+  paystackId: number | null;
+  email: string | null;
+}
+
+export type TransactionState =
+  | { state: "success"; paid: PaidTransaction }
+  /** Not finished yet: the customer may still be paying, or a transfer may land. */
+  | { state: "pending"; gateway: string }
+  /** Finished without taking money. */
+  | { state: "failed"; gateway: string }
+  /** Paystack could not be reached. Says nothing about the payment. */
+  | { state: "unavailable" };
+
+/** Reads a transaction webhook/verify `data` object. */
+export function toPaidTransaction(data: {
+  amount?: unknown;
+  currency?: unknown;
+  paid_at?: unknown;
+  paidAt?: unknown;
+  id?: unknown;
+  customer?: { email?: unknown } | null;
+}): PaidTransaction {
+  const paidAt = data.paid_at ?? data.paidAt;
+  return {
+    amountKobo: Number(data.amount),
+    currency: typeof data.currency === "string" ? data.currency : "",
+    paidAt: typeof paidAt === "string" ? paidAt : null,
+    paystackId: typeof data.id === "number" ? data.id : null,
+    email: typeof data.customer?.email === "string" ? data.customer.email : null,
+  };
+}
+
+export async function verifyTransaction(reference: string): Promise<TransactionState> {
+  const result = await paystackFetch(`/transaction/verify/${encodeURIComponent(reference)}`);
+  if (!result || result.status >= 500 || result.status === 429) return { state: "unavailable" };
+
+  // Unknown to Paystack yet: the customer has not reached checkout.
+  if (result.body.status !== true || !result.body.data) return { state: "pending", gateway: "not_found" };
+
+  const gateway = String(result.body.data.status);
+  if (gateway === "success") return { state: "success", paid: toPaidTransaction(result.body.data) };
+  if (gateway === "failed" || gateway === "reversed") return { state: "failed", gateway };
+  return { state: "pending", gateway };
+}
+
+/** Checks x-paystack-signature against the exact bytes Paystack sent. */
+export function isValidPaystackSignature(rawBody: string, signature: string | null): boolean {
+  if (!signature) return false;
+  const expected = createHmac("sha512", secretKey()).update(rawBody).digest("hex");
+  const a = Buffer.from(expected);
+  const b = Buffer.from(signature);
+  return a.length === b.length && timingSafeEqual(a, b);
 }

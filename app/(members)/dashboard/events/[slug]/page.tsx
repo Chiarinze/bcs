@@ -13,7 +13,10 @@ import {
   Loader2,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
+import PendingPaymentNotice from "@/components/payments/PendingPaymentNotice";
+import { useCheckout } from "@/hooks/useCheckout";
 import { formatEventTime } from "@/lib/eventTime";
+import { discountedPrice, isEventOver } from "@/lib/pricing";
 
 interface EventDetail {
   id: string;
@@ -68,11 +71,11 @@ export default function MemberEventDetailPage() {
   const [checkingReg, setCheckingReg] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const { startCheckout, starting } = useCheckout();
   const [showSuccess, setShowSuccess] = useState(false);
   const [regError, setRegError] = useState("");
 
   // Paid internal events
-  const [memberEmail, setMemberEmail] = useState("");
   const [coupon, setCoupon] = useState("");
   const [discountPercent, setDiscountPercent] = useState<number | null>(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
@@ -81,8 +84,6 @@ export default function MemberEventDetailPage() {
     async function load() {
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) setMemberEmail(user.email);
 
       // Fetch event
       const { data: eventData } = await supabase
@@ -119,21 +120,10 @@ export default function MemberEventDetailPage() {
     load();
   }, [slug, router]);
 
-  // Load Paystack inline script once (paid events only)
-  useEffect(() => {
-    if (!event?.is_paid || typeof window === "undefined" || window.paystackLoaded) return;
-    const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
-    script.async = true;
-    script.onload = () => {
-      window.paystackLoaded = true;
-    };
-    document.body.appendChild(script);
-  }, [event?.is_paid]);
-
   const basePrice = event?.is_paid ? Number(event.price) || 0 : 0;
   const finalPrice =
-    discountPercent != null ? Math.round(basePrice * (1 - discountPercent / 100)) : basePrice;
+    discountPercent != null ? discountedPrice(basePrice, discountPercent) : basePrice;
+  const couponCode = discountPercent != null ? coupon.trim().toUpperCase() : null;
 
   async function applyCouponCode() {
     if (!event || !coupon.trim()) return;
@@ -150,63 +140,46 @@ export default function MemberEventDetailPage() {
     setCheckingCoupon(false);
   }
 
-  async function submitRegistration(reference?: string) {
-    const res = await fetch(`/api/events/${slug}/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        reference: reference || null,
-        coupon_code: discountPercent != null ? coupon.trim().toUpperCase() : null,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok) {
-      setRegistered(true);
-      setShowConfirm(false);
-      setShowSuccess(true);
-    } else {
-      setRegError(data.error || "Registration failed");
+  async function registerFree() {
+    setRegistering(true);
+    try {
+      const res = await fetch(`/api/events/${slug}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coupon_code: couponCode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setRegistered(true);
+        setShowConfirm(false);
+        setShowSuccess(true);
+      } else {
+        setRegError(data.error || "Registration failed");
+      }
+    } catch {
+      setRegError("We could not reach the server. Please check your connection and try again.");
     }
     setRegistering(false);
   }
 
   async function handleRegister() {
-    setRegistering(true);
     setRegError("");
 
     // Free (or fully discounted): register directly.
     if (finalPrice <= 0) {
-      await submitRegistration();
+      await registerFree();
       return;
     }
 
-    // Paid: collect payment first, then register with the reference.
-    for (let i = 0; i < 25 && !window.PaystackPop; i++) {
-      await new Promise((r) => setTimeout(r, 200));
-    }
-    if (!window.PaystackPop || !memberEmail) {
-      setRegError("Payment could not be started. Please reload the page and try again.");
-      setRegistering(false);
-      return;
-    }
-
-    const reference = `BCS-INT-${Date.now()}`;
-    const handler = window.PaystackPop.setup({
-      key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-      email: memberEmail,
-      amount: finalPrice * 100,
-      currency: "NGN",
-      ref: reference,
-      metadata: { event_title: event?.title, internal: true },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      callback: function (response: any) {
-        submitRegistration(response.reference);
-      },
-      onClose: function () {
-        setRegistering(false);
-      },
+    // Paid: the server re-checks everything, then sends the member to Paystack.
+    const result = await startCheckout({
+      kind: "internal",
+      event_id: event?.id,
+      coupon_code: couponCode,
+      expected_amount: finalPrice,
     });
-    handler.openIframe();
+    if ("free" in result) await registerFree();
+    else if ("error" in result) setRegError(result.error);
   }
 
   if (loading) {
@@ -219,10 +192,12 @@ export default function MemberEventDetailPage() {
 
   if (!event) return null;
 
-  const isPast = new Date(event.end_date || event.date) < new Date();
+  const isPast = isEventOver(event);
 
   return (
     <div className="space-y-6">
+      {!registered && basePrice > 0 && <PendingPaymentNotice />}
+
       {/* Success message */}
       {showSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
@@ -391,7 +366,7 @@ export default function MemberEventDetailPage() {
                 </Button>
                 <Button
                   variant="primary"
-                  loading={registering}
+                  loading={registering || starting}
                   onClick={handleRegister}
                 >
                   {finalPrice > 0 ? `Pay ₦${finalPrice.toLocaleString()} & register` : "Confirm Registration"}

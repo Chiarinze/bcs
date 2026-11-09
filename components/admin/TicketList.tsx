@@ -11,7 +11,7 @@ interface Ticket {
   payment_ref: string;
   created_at: string;
   events?: { title: string };
-  coupons?: { code: string };
+  coupon_code?: string | null;
 }
 
 export default function TicketList() {
@@ -20,7 +20,7 @@ export default function TicketList() {
 
   useEffect(() => {
     fetch("/api/tickets")
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : []))
       .then((data) => setTickets(data || []))
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
@@ -52,7 +52,7 @@ export default function TicketList() {
               <td className="p-2">{t.buyer_name}</td>
               <td className="p-2">{t.buyer_email}</td>
               <td className="p-2">₦{t.amount_paid}</td>
-              <td className="p-2">{t.coupons?.code ?? "—"}</td>
+              <td className="p-2">{t.coupon_code ?? "—"}</td>
               <td className="p-2 text-xs">{t.payment_ref}</td>
               <td className="p-2 text-xs">
                 {new Date(t.created_at).toLocaleString()}

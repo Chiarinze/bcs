@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { TextInput, TextArea } from "@/components/ui/FormInputs";
 import Button from "@/components/ui/Button";
+import PendingPaymentNotice from "@/components/payments/PendingPaymentNotice";
+import { useCheckout } from "@/hooks/useCheckout";
 import Image from "next/image";
 import { IMAGES } from "@/assets/images";
 import { Heart } from "lucide-react";
@@ -14,93 +16,26 @@ export default function DonateClient() {
   const [email, setEmail] = useState("");
   const [amount, setAmount] = useState<number | "">("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // Load Paystack script
-  useEffect(() => {
-    if (typeof window === "undefined" || window.paystackLoaded) return;
-    const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
-    script.async = true;
-    script.onload = () => {
-      window.paystackLoaded = true;
-    };
-    document.body.appendChild(script);
-  }, []);
+  const { startCheckout, starting: loading } = useCheckout();
 
   async function handleDonate(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (!amount || amount < 100) {
-      setError("Please enter a donation amount of at least ₦100.");
+    if (!amount || amount < 100 || !Number.isInteger(amount)) {
+      setError("Please enter a whole donation amount of at least ₦100.");
       return;
     }
 
-    setLoading(true);
-
-    // Wait for Paystack to load
-    for (let i = 0; i < 20; i++) {
-      if (window.PaystackPop && typeof window.PaystackPop.setup === "function")
-        break;
-      await new Promise((r) => setTimeout(r, 200));
-    }
-
-    if (!window.PaystackPop) {
-      setError("Payment provider failed to load. Please reload the page.");
-      setLoading(false);
-      return;
-    }
-
-    const reference = `DON-${Date.now()}`;
-    const donorEmail = email.trim() || "anonymous@beninchoraleandphilharmonic.com";
-    const donorName = name.trim() || "Anonymous";
-
-    const handler = window.PaystackPop.setup({
-      key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-      email: donorEmail,
-      amount: amount * 100, // Paystack expects kobo
-      currency: "NGN",
-      ref: reference,
-      metadata: {
-        donor_name: donorName,
-        message: message || undefined,
-        type: "donation",
-      },
-      callback: function (response: { reference: string }) {
-        // Verify payment on server
-        fetch("/api/donations/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            reference: response.reference,
-            donor_name: donorName,
-            donor_email: donorEmail,
-            amount,
-            message: message || null,
-          }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.success) {
-              window.location.href = `/donate/success?ref=${response.reference}&name=${encodeURIComponent(donorName)}`;
-            } else {
-              setError(
-                data.error || "Payment verified but record failed. Please contact support."
-              );
-            }
-          })
-          .catch(() => {
-            setError("Payment completed, but verification failed. Please contact support.");
-          });
-      },
-      onClose: function () {
-        setLoading(false);
-      },
+    const result = await startCheckout({
+      kind: "donation",
+      amount,
+      donor_name: name,
+      donor_email: email,
+      message,
     });
-
-    handler.openIframe();
+    if ("error" in result) setError(result.error);
   }
 
   return (
@@ -126,6 +61,8 @@ export default function DonateClient() {
             Nigeria and beyond.
           </p>
         </div>
+
+        <PendingPaymentNotice />
 
         {/* Donation Form */}
         <form

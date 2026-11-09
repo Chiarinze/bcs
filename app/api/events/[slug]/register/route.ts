@@ -1,7 +1,9 @@
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabaseServer";
 import { requireAuth } from "@/lib/requireAuth";
-import { verifyPaystackPayment, applyCoupon } from "@/lib/paystack";
+import { applyCoupon, memberRegistrationRow } from "@/lib/checkout";
+import { isEventOver } from "@/lib/pricing";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -35,9 +37,9 @@ export async function GET(_req: NextRequest, { params }: Props) {
   return NextResponse.json({ registered: !!registration });
 }
 
-// POST: register current user for the event.
-// Paid internal events: body { reference, coupon_code? } — the Paystack
-// transaction is verified server-side against events.price (less coupon).
+// POST: register the current member for a free event, or a paid event fully
+// covered by a coupon. Paid registrations go through /api/payments/initialize
+// and are created by fulfill_payment once Paystack confirms the money.
 export async function POST(req: NextRequest, { params }: Props) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
@@ -45,10 +47,9 @@ export async function POST(req: NextRequest, { params }: Props) {
   const { slug } = await params;
   const supabase = createServerSupabase();
 
-  // Get event
   const { data: event } = await supabase
     .from("events")
-    .select("id, is_internal, registration_closed, is_paid, price")
+    .select("id, is_internal, registration_closed, is_paid, price, date, end_date")
     .eq("slug", slug)
     .single();
 
@@ -60,64 +61,24 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "This is not an internal event" }, { status: 400 });
   }
 
-  if (event.registration_closed) {
-    return NextResponse.json(
-      { error: "Registration is closed for this event." },
-      { status: 403 }
-    );
+  if (event.registration_closed || isEventOver(event)) {
+    return NextResponse.json({ error: "Registration is closed for this event." }, { status: 403 });
   }
 
-  // ---- Payment (paid internal events) ----
   const body = await req.json().catch(() => ({}));
   const basePrice = event.is_paid ? Number(event.price) || 0 : 0;
-  let amountPaid = 0;
-  let paymentRef: string | null = null;
-  let couponCode: string | null = null;
 
-  if (basePrice > 0) {
-    const quote = await applyCoupon(supabase, event.id, body?.coupon_code, basePrice);
-    if (quote.error) return NextResponse.json({ error: quote.error }, { status: 400 });
-    couponCode = quote.code;
-
-    if (quote.price > 0) {
-      const reference = typeof body?.reference === "string" ? body.reference.trim() : "";
-      if (!reference) {
-        return NextResponse.json({ error: "Payment is required for this event" }, { status: 402 });
-      }
-      const verified = await verifyPaystackPayment(reference, quote.price);
-      if (!verified.ok) return NextResponse.json({ error: verified.error }, { status: 400 });
-
-      const { data: used } = await supabase
-        .from("internal_event_registrations")
-        .select("id")
-        .eq("payment_ref", reference)
-        .maybeSingle();
-      if (used) return NextResponse.json({ error: "This payment reference has already been used" }, { status: 409 });
-
-      amountPaid = quote.price;
-      paymentRef = reference;
-    } else {
-      // 100% coupon — free registration, still recorded with the code.
-      paymentRef = `FREECOUPON-${Date.now()}`;
-    }
+  const quote = await applyCoupon(supabase, event.id, body?.coupon_code, basePrice);
+  if (quote.error) return NextResponse.json({ error: quote.error }, { status: 400 });
+  if (quote.price > 0) {
+    return NextResponse.json({ error: "Payment is required for this event" }, { status: 402 });
   }
 
-  // Get member profile (only select columns that exist in the profiles table)
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("first_name, last_name, other_name, email, physical_address, ensemble_arm, choir_part, orchestra_instrument, year_inducted, membership_status, photo_url, membership_id")
-    .eq("id", auth.id)
-    .single();
-
-  if (!profile) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+  const member = await memberRegistrationRow(supabase, auth.id);
+  if ("error" in member) {
+    return NextResponse.json({ error: member.error }, { status: member.status });
   }
 
-  if (!profile.first_name || !profile.last_name) {
-    return NextResponse.json({ error: "Please complete your profile first" }, { status: 400 });
-  }
-
-  // Check if already registered
   const { data: existing } = await supabase
     .from("internal_event_registrations")
     .select("id")
@@ -129,42 +90,35 @@ export async function POST(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "You are already registered for this event" }, { status: 409 });
   }
 
-  // Insert registration with profile data
-  const { error } = await supabase
-    .from("internal_event_registrations")
-    .insert({
-      event_id: event.id,
-      user_id: auth.id,
-      first_name: profile.first_name,
-      last_name: profile.last_name,
-      other_name: profile.other_name || null,
-      email: profile.email,
-      physical_address: profile.physical_address || "",
-      ensemble_arm: profile.ensemble_arm || "",
-      choir_part: profile.choir_part || null,
-      orchestra_instrument: profile.orchestra_instrument || null,
-      join_year: profile.year_inducted || new Date().getFullYear(),
-      has_medical_condition: false,
-      medical_condition_details: null,
-      membership_status: profile.membership_status || "probationary",
-      passport_url: profile.photo_url || "",
-      membership_id: profile.membership_id || null,
-      amount_paid: amountPaid,
-      payment_ref: paymentRef,
-      coupon_code: couponCode,
+  if (quote.code) {
+    const { data: redeemed, error: redeemError } = await supabase.rpc("redeem_coupon", {
+      p_event_id: event.id,
+      p_code: quote.code,
     });
+    if (redeemError || !redeemed) {
+      return NextResponse.json({ error: "Coupon usage limit has been reached" }, { status: 400 });
+    }
+  }
+
+  const { error } = await supabase.from("internal_event_registrations").insert({
+    ...member.row,
+    event_id: event.id,
+    user_id: auth.id,
+    has_medical_condition: false,
+    medical_condition_details: null,
+    amount_paid: 0,
+    payment_ref: quote.code ? `FREECOUPON-${randomUUID()}` : null,
+    coupon_code: quote.code,
+  });
 
   if (error) {
+    if (quote.code) await supabase.rpc("release_coupon", { p_event_id: event.id, p_code: quote.code });
     if (error.code === "23505") {
       return NextResponse.json({ error: "You are already registered for this event" }, { status: 409 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Internal registration error:", error.message);
+    return NextResponse.json({ error: "Registration failed. Please try again." }, { status: 500 });
   }
 
-  if (couponCode) {
-    const { error: rpcError } = await supabase.rpc("increment_coupon_usage", { coupon_code_param: couponCode });
-    if (rpcError) console.error("Failed to update coupon usage:", rpcError.message);
-  }
-
-  return NextResponse.json({ success: true, amount_paid: amountPaid }, { status: 201 });
+  return NextResponse.json({ success: true, amount_paid: 0 }, { status: 201 });
 }

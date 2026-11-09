@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function NewCouponForm() {
+export default function NewCouponForm({ events }: { events: { id: string; title: string }[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -14,6 +14,7 @@ export default function NewCouponForm() {
 
     const form = new FormData(e.currentTarget);
     const payload = {
+      event_id: String(form.get("event_id") || ""),
       code: String(form.get("code") || "").trim().toUpperCase(),
       discount_percent: Number(form.get("discount_percent")),
       usage_limit: form.get("usage_limit")
@@ -45,6 +46,16 @@ export default function NewCouponForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <select name="event_id" required defaultValue="" className="input">
+        <option value="" disabled>
+          Select an event
+        </option>
+        {events.map((event) => (
+          <option key={event.id} value={event.id}>
+            {event.title}
+          </option>
+        ))}
+      </select>
       <input
         name="code"
         placeholder="Coupon code (e.g. EVENT50)"

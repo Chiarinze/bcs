@@ -8,3 +8,5 @@ export function createServerSupabase() {
   }
   return createClient(url, key, { auth: { persistSession: false } });
 }
+
+export type ServerSupabase = ReturnType<typeof createServerSupabase>;
