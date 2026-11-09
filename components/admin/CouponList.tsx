@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { Coupon } from "@/types";
+import { CouponStatus, CouponUsage } from "@/components/admin/CouponUsage";
 
 export default function CouponList({ coupons }: { coupons: Coupon[] }) {
   const [items, setItems] = useState(coupons);
@@ -36,10 +37,18 @@ export default function CouponList({ coupons }: { coupons: Coupon[] }) {
   return (
     <div className="space-y-3">
       {items.map((c) => (
-        <div key={c.id} className="flex items-center justify-between p-3 border rounded">
+        <div key={c.id} className="flex flex-wrap items-start justify-between gap-3 p-3 border rounded">
           <div>
-            <div className="font-medium">{c.code}</div>
-            <div className="text-sm text-gray-600">Discount: {c.discount_percent}% · Used: {c.usage_count}{c.usage_limit ? ` / ${c.usage_limit}` : " (unlimited)"}</div>
+            <div className="font-medium">
+              {c.code} · <span className="text-sm"><CouponStatus coupon={c} /></span>
+            </div>
+            <div className="text-sm text-gray-600 mb-1">Discount: {c.discount_percent}%</div>
+            <div className="text-sm text-gray-600">
+              <CouponUsage
+                coupon={c}
+                onSaved={(limit) => setItems((s) => s.map((x) => (x.id === c.id ? { ...x, usage_limit: limit } : x)))}
+              />
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={() => toggleActive(c.id, c.is_active)} className={`px-3 py-1 rounded ${c.is_active ? "bg-yellow-500" : "bg-gray-300"}`}>

@@ -75,7 +75,7 @@ export default function NewCouponForm({ events }: { events: { id: string; title:
         name="usage_limit"
         type="number"
         min={1}
-        placeholder="Usage limit (leave blank for unlimited)"
+        placeholder="Max uses (optional — blank for unlimited)"
         className="input"
       />
       <label className="flex items-center gap-2">

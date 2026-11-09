@@ -100,6 +100,12 @@ export async function findUnfinishedPayment(
     // A transfer in progress; after 30 minutes assume it was given up on.
     const recent = Date.now() - new Date(row.created_at).getTime() < 30 * 60 * 1000;
     if (settled.status === "pending" && settled.gateway_status === "ongoing" && recent) return settled;
+
+    // The customer is starting over, so their earlier attempt gives back its
+    // coupon use. If it is somehow paid later, the use is counted again.
+    if (settled.status === "pending") {
+      await supabase.rpc("release_payment_coupon", { p_reference: row.reference });
+    }
   }
   return null;
 }

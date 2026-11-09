@@ -86,6 +86,7 @@ Rules worth keeping:
 - All checks happen before payment. Once money is received it is honoured, whatever has changed since (registration closed, price edited, coupon disabled).
 - Anything that can't complete automatically goes to **Admin → Payments** with a reason, and the admin is emailed. Nothing is dropped silently.
 - A full refund removes the ticket, registration or donation made by that reference. The `payments` row keeps the history.
+- A coupon's max uses is optional (blank = unlimited) and can be edited at any time. A use is held when checkout starts, so the limit can't be exceeded by people paying at the same time. It is given back if the checkout fails, is dismissed, or isn't paid within 30 minutes.
 
 ### Setup
 

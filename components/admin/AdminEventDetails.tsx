@@ -16,9 +16,10 @@ interface Props {
   categories: { id: string; name: string; price: number }[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   codes: any[];
+  heldCoupons?: Record<string, number>;
 }
 
-export default function AdminEventDetails({ event, totalTickets, categories, codes }: Props) {
+export default function AdminEventDetails({ event, totalTickets, categories, codes, heldCoupons }: Props) {
   const router = useRouter();
   const [registrationClosed, setRegistrationClosed] = useState<boolean>(
     !!event.registration_closed,
@@ -140,7 +141,7 @@ export default function AdminEventDetails({ event, totalTickets, categories, cod
 
       <AttendeesSection event={event} categories={categories} />
 
-      {event.is_paid && <CouponsSection event={event} codes={codes} />}
+      {event.is_paid && <CouponsSection event={event} codes={codes} held={heldCoupons} />}
     </div>
   );
 }

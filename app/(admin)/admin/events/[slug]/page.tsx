@@ -39,6 +39,20 @@ export default async function AdminEventDetailsPage({ params }: Props) {
     .eq("event_id", event.id)
     .order("created_at", { ascending: false });
 
+  // Coupon uses held by checkouts that haven't been paid yet.
+  const { data: holds } = await supabase
+    .from("payments")
+    .select("details")
+    .eq("event_id", event.id)
+    .eq("status", "pending")
+    .eq("coupon_held", true);
+
+  const heldCoupons: Record<string, number> = {};
+  for (const h of holds || []) {
+    const code = (h.details as { coupon_code?: string } | null)?.coupon_code;
+    if (code) heldCoupons[code] = (heldCoupons[code] ?? 0) + 1;
+  }
+
   return (
     <AdminLayout>
       <AdminEventDetails
@@ -46,6 +60,7 @@ export default async function AdminEventDetailsPage({ params }: Props) {
         totalTickets={totalTickets || 0}
         categories={categories || []}
         codes={codes || []}
+        heldCoupons={heldCoupons}
       />
     </AdminLayout>
   );

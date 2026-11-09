@@ -72,6 +72,19 @@ async function startCheckout(
     return fail("Payment could not be started. Please try again.", 500);
   }
 
+  // Take one use of the coupon now, so the limit can never be exceeded by
+  // people paying at the same time. Given back if the checkout isn't paid.
+  if (order.details.coupon_code) {
+    const { data: held, error: holdError } = await supabase.rpc("hold_payment_coupon", { p_reference: reference });
+    if (holdError || !held) {
+      await supabase.from("payments").update({ status: "failed" }).eq("reference", reference);
+      if (holdError) console.error("Could not hold coupon:", holdError.message);
+      return holdError
+        ? fail("Payment could not be started. Please try again.", 500)
+        : fail("This coupon has just been used up. Remove it to pay the full price.");
+    }
+  }
+
   const statusUrl = `${origin}/payment/status?reference=${encodeURIComponent(reference)}`;
   const checkout = await initializeTransaction({
     reference,
@@ -117,17 +130,13 @@ async function ticketCheckout(req: NextRequest, supabase: ServerSupabase, body: 
   const paper = paperFields(event.collect_paper_info === true, body);
   if ("error" in paper) return fail(paper.error);
 
-  const quote = await quoteTicket(supabase, event, body.category, body.coupon_code);
-  if ("error" in quote) return fail(quote.error);
-
-  if (quote.price <= 0) return NextResponse.json({ free: true });
-  if (Number(body.expected_amount) !== quote.price) return priceChanged(quote.price);
-
+  // Before pricing: this also gives back the coupon use held by this buyer's
+  // own abandoned attempt, which would otherwise block them retrying.
   // No reference in this reply: the caller has only typed an email address.
   const unfinished = await findUnfinishedPayment(supabase, {
     event_id: event.id,
     email: buyerEmail,
-    category: quote.category,
+    category: typeof body.category === "string" ? body.category : undefined,
   });
   if (unfinished) {
     return fail(
@@ -137,6 +146,12 @@ async function ticketCheckout(req: NextRequest, supabase: ServerSupabase, body: 
       409
     );
   }
+
+  const quote = await quoteTicket(supabase, event, body.category, body.coupon_code);
+  if ("error" in quote) return fail(quote.error);
+
+  if (quote.price <= 0) return NextResponse.json({ free: true });
+  if (Number(body.expected_amount) !== quote.price) return priceChanged(quote.price);
 
   return startCheckout(req, supabase, {
     prefix: "BCS",
@@ -182,13 +197,7 @@ async function internalCheckout(req: NextRequest, supabase: ServerSupabase, body
   const email = normalizeEmail(member.email || auth.email || "");
   if (!isValidEmail(email)) return fail("Your profile needs a valid email address before you can pay.");
 
-  const basePrice = event.is_paid ? Number(event.price) || 0 : 0;
-  const quote = await applyCoupon(supabase, event.id, body.coupon_code, basePrice);
-  if (quote.error) return fail(quote.error);
-
-  if (quote.price <= 0) return NextResponse.json({ free: true });
-  if (Number(body.expected_amount) !== quote.price) return priceChanged(quote.price);
-
+  // Before pricing, so the member's own abandoned attempt gives back its coupon use.
   const unfinished = await findUnfinishedPayment(supabase, { event_id: event.id, user_id: auth.id });
   if (unfinished) {
     return NextResponse.json({
@@ -197,6 +206,13 @@ async function internalCheckout(req: NextRequest, supabase: ServerSupabase, body
       ...paymentLinks(unfinished, event.slug),
     });
   }
+
+  const basePrice = event.is_paid ? Number(event.price) || 0 : 0;
+  const quote = await applyCoupon(supabase, event.id, body.coupon_code, basePrice);
+  if (quote.error) return fail(quote.error);
+
+  if (quote.price <= 0) return NextResponse.json({ free: true });
+  if (Number(body.expected_amount) !== quote.price) return priceChanged(quote.price);
 
   return startCheckout(req, supabase, {
     prefix: "BCS-INT",

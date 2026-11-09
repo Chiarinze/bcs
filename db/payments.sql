@@ -43,6 +43,10 @@ CREATE TABLE IF NOT EXISTS public.payments (
   updated_at     timestamptz NOT NULL DEFAULT now()
 );
 
+-- True while this payment accounts for one use in coupon_codes.usage_count:
+-- held from the start of checkout, kept once paid, released if abandoned.
+ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS coupon_held boolean NOT NULL DEFAULT false;
+
 CREATE INDEX IF NOT EXISTS payments_status_created_idx ON public.payments (status, created_at DESC);
 CREATE INDEX IF NOT EXISTS payments_event_user_idx     ON public.payments (event_id, user_id, status);
 CREATE INDEX IF NOT EXISTS payments_event_email_idx    ON public.payments (event_id, email, status);
@@ -231,8 +235,10 @@ BEGIN
     RETURN 'needs_review';
   END IF;
 
-  -- Honoured even past the limit: the customer has already paid this price.
-  IF v_coupon IS NOT NULL THEN
+  -- Normally the use was held when checkout started. If that hold had been
+  -- released (the customer took over 30 minutes), count it now: they have
+  -- already paid this price, so it is honoured even past the limit.
+  IF v_coupon IS NOT NULL AND NOT p.coupon_held THEN
     UPDATE public.coupon_codes
     SET usage_count = COALESCE(usage_count, 0) + 1
     WHERE event_id = p.event_id AND code = v_coupon;
@@ -247,7 +253,8 @@ BEGIN
   END IF;
 
   UPDATE public.payments
-  SET status = 'fulfilled', review_reason = NULL, fulfilled_at = now(), updated_at = now()
+  SET status = 'fulfilled', review_reason = NULL, fulfilled_at = now(), updated_at = now(),
+      coupon_held = (v_coupon IS NOT NULL)
   WHERE id = p.id;
 
   RETURN 'fulfilled';
@@ -294,13 +301,11 @@ BEGIN
     RETURN 'needs_review';
   END IF;
 
-  IF p.status = 'fulfilled' THEN
-    v_coupon := NULLIF(p.details->>'coupon_code', '');
-    IF v_coupon IS NOT NULL THEN
-      UPDATE public.coupon_codes
-      SET usage_count = GREATEST(COALESCE(usage_count, 0) - 1, 0)
-      WHERE event_id = p.event_id AND code = v_coupon;
-    END IF;
+  v_coupon := NULLIF(p.details->>'coupon_code', '');
+  IF p.coupon_held AND v_coupon IS NOT NULL THEN
+    UPDATE public.coupon_codes
+    SET usage_count = GREATEST(COALESCE(usage_count, 0) - 1, 0)
+    WHERE event_id = p.event_id AND code = v_coupon;
   END IF;
 
   DELETE FROM public.tickets WHERE payment_ref = p.reference;
@@ -308,7 +313,8 @@ BEGIN
   DELETE FROM public.donations WHERE payment_reference = p.reference;
 
   UPDATE public.payments
-  SET status = 'refunded', gateway_status = 'reversed', review_reason = NULL, updated_at = now()
+  SET status = 'refunded', gateway_status = 'reversed', review_reason = NULL, updated_at = now(),
+      coupon_held = false
   WHERE id = p.id;
 
   RETURN 'refunded';
@@ -346,6 +352,99 @@ AS $$
 $$;
 
 -- ---------------------------------------------------------------------
+-- 7b. COUPON HOLDS FOR PAID CHECKOUTS — a use is taken when checkout
+--     starts, so a limit of 10 means at most 10 people can be paying with
+--     the code. Abandoned checkouts give the use back.
+-- ---------------------------------------------------------------------
+
+-- Takes one use for this payment. False when the code is used up or off.
+CREATE OR REPLACE FUNCTION public.hold_payment_coupon(p_reference text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  p public.payments%ROWTYPE;
+BEGIN
+  SELECT * INTO p FROM public.payments WHERE reference = p_reference FOR UPDATE;
+  IF NOT FOUND OR p.coupon_held OR NULLIF(p.details->>'coupon_code', '') IS NULL THEN
+    RETURN FOUND;
+  END IF;
+
+  IF NOT redeem_coupon(p.event_id, p.details->>'coupon_code') THEN
+    RETURN false;
+  END IF;
+
+  UPDATE public.payments SET coupon_held = true, updated_at = now() WHERE id = p.id;
+  RETURN true;
+END;
+$$;
+
+-- Gives a held use back. Never touches a payment that has been fulfilled.
+CREATE OR REPLACE FUNCTION public.release_payment_coupon(p_reference text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.payments
+  SET coupon_held = false, updated_at = now()
+  WHERE reference = p_reference AND coupon_held AND status <> 'fulfilled';
+END;
+$$;
+
+-- The count follows coupon_held, whatever changed it: release above, a
+-- payment failing, or an admin dismissing it.
+CREATE OR REPLACE FUNCTION public.payments_coupon_hold_sync()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.status IN ('failed', 'dismissed') THEN
+    NEW.coupon_held := false;
+  END IF;
+
+  IF OLD.coupon_held AND NOT NEW.coupon_held AND NEW.status <> 'refunded'
+     AND NULLIF(OLD.details->>'coupon_code', '') IS NOT NULL THEN
+    UPDATE public.coupon_codes
+    SET usage_count = GREATEST(COALESCE(usage_count, 0) - 1, 0)
+    WHERE event_id = OLD.event_id AND code = OLD.details->>'coupon_code';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS payments_coupon_hold_sync ON public.payments;
+CREATE TRIGGER payments_coupon_hold_sync
+  BEFORE UPDATE OF status, coupon_held ON public.payments
+  FOR EACH ROW
+  EXECUTE FUNCTION public.payments_coupon_hold_sync();
+
+-- Checkouts not paid within 30 minutes give their use back. If one is paid
+-- later anyway, fulfill_payment counts the use again.
+CREATE OR REPLACE FUNCTION public.release_stale_coupon_holds()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  n integer;
+BEGIN
+  UPDATE public.payments
+  SET coupon_held = false, updated_at = now()
+  WHERE coupon_held AND status = 'pending' AND created_at < now() - interval '30 minutes';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  RETURN n;
+END;
+$$;
+
+-- ---------------------------------------------------------------------
 -- 8. RECONCILE — safety net for a missed webhook. The database cannot
 --    hold the Paystack key's logic, so it just wakes the app every 15
 --    minutes (Vercel Hobby cron is daily only; pg_cron is free).
@@ -360,6 +459,9 @@ DECLARE
   site_url text := COALESCE(get_secret('site_url'), 'https://beninchoraleandphilharmonic.com');
   secret   text := get_secret('cron_secret');
 BEGIN
+  -- Needs no Paystack call, so it runs even if the app cannot be reached.
+  PERFORM release_stale_coupon_holds();
+
   IF secret IS NULL OR secret = '' THEN
     RAISE WARNING 'cron_secret not set in vault; payments not reconciled';
     RETURN;
@@ -392,6 +494,13 @@ REVOKE ALL ON FUNCTION public.refund_payment(text, bigint) FROM PUBLIC, anon, au
 REVOKE ALL ON FUNCTION public.redeem_coupon(uuid, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.release_coupon(uuid, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.reconcile_payments_tick() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.hold_payment_coupon(text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.release_payment_coupon(text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.release_stale_coupon_holds() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.payments_coupon_hold_sync() FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.hold_payment_coupon(text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.release_payment_coupon(text) TO service_role;
 
 GRANT EXECUTE ON FUNCTION public.alert_payment_review(text, text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.fulfill_payment(text, bigint, text, timestamptz, bigint, text, boolean) TO service_role;
